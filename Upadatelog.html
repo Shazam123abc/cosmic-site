@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Log — System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --accent: #ff6b35;
+            --accent-glow: rgba(255, 107, 53, 0.45);
+            --accent-subtle: rgba(255, 107, 53, 0.1);
+            --bg: #0d0601;
+            --bg-card: rgba(20, 10, 2, 0.92);
+            --border: rgba(255, 107, 53, 0.2);
+            --text: #fff;
+            --text-muted: rgba(255,255,255,0.5);
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Background radial glow */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background:
+                radial-gradient(ellipse at 20% 30%, rgba(255,107,53,0.08) 0%, transparent 55%),
+                radial-gradient(ellipse at 80% 70%, rgba(255,107,53,0.05) 0%, transparent 55%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Scan lines */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(255,107,53,0.02) 0px,
+                transparent 1px,
+                transparent 2px,
+                rgba(255,107,53,0.02) 3px
+            );
+            animation: scanMove 8s linear infinite;
+        }
+
+        @keyframes scanMove {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(100px); }
+        }
+
+        /* Stars canvas */
+        .stars {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px; height: 2px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 3px var(--accent);
+            animation: twinkle 3s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.15; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Grid overlay */
+        .grid-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(255,107,53,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,107,53,0.025) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── HEADER ── */
+        header {
+            text-align: center;
+            padding: 44px 24px 36px;
+            margin-bottom: 44px;
+            background: rgba(14, 6, 1, 0.85);
+            border: 2px solid rgba(255,107,53,0.3);
+            clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+            box-shadow: 0 0 40px rgba(255,107,53,0.15), inset 0 0 30px rgba(255,107,53,0.04);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 3px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            animation: energyFlow 2.5s linear infinite;
+        }
+
+        @keyframes energyFlow {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .header-logo {
+            width: 52px; height: 52px;
+            background: var(--accent);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6em;
+            margin: 0 auto 18px;
+            box-shadow: 0 4px 28px var(--accent-glow);
+            animation: logoBob 3s ease-in-out infinite;
+        }
+
+        @keyframes logoBob {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        h1 {
+            font-family: 'Nunito', sans-serif;
+            font-size: 2.8em;
+            font-weight: 900;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 6px;
+            text-shadow: 0 0 20px var(--accent-glow), 0 0 50px rgba(255,107,53,0.3);
+            margin-bottom: 10px;
+            animation: titleGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            from { filter: drop-shadow(0 0 6px rgba(255,107,53,0.5)); }
+            to   { filter: drop-shadow(0 0 18px rgba(255,107,53,0.8)); }
+        }
+
+        .subtitle {
+            color: rgba(255,107,53,0.65);
+            font-size: 0.9em;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        /* ── UPDATE ENTRY ── */
+        .update-entry {
+            background: var(--bg-card);
+            border-left: 3px solid var(--accent);
+            clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+            padding: 24px 28px;
+            margin-bottom: 22px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 16px rgba(255,107,53,0.08);
+            backdrop-filter: blur(6px);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .update-entry::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255,107,53,0.5), transparent);
+            animation: energyFlow 3s linear infinite;
+        }
+
+        .update-entry:hover {
+            transform: translateX(6px);
+            box-shadow: 0 6px 28px rgba(0,0,0,0.6), 0 0 30px rgba(255,107,53,0.2);
+            border-left-color: #ff8c5a;
+        }
+
+        /* ── MEGA ENTRY ── */
+        .update-entry.mega {
+            border-left-color: var(--accent);
+            border-width: 4px;
+            box-shadow:
+                0 0 40px rgba(255,107,53,0.35),
+                0 0 80px rgba(255,107,53,0.15),
+                0 8px 40px rgba(0,0,0,0.7),
+                inset 0 0 30px rgba(255,107,53,0.06);
+        }
+
+        .mega-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, rgba(255,107,53,0.25), rgba(255,140,90,0.15));
+            border: 1.5px solid rgba(255,107,53,0.5);
+            color: var(--accent);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 12px;
+            box-shadow: 0 0 14px rgba(255,107,53,0.3);
+            animation: megaPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes megaPulse {
+            0%, 100% { box-shadow: 0 0 14px rgba(255,107,53,0.3); }
+            50% { box-shadow: 0 0 28px rgba(255,107,53,0.6); }
+        }
+
+        .update-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .version {
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.25em;
+            font-weight: 900;
+            color: var(--accent);
+            text-shadow: 0 0 10px rgba(255,107,53,0.4);
+        }
+
+        .date {
+            color: rgba(255,107,53,0.7);
+            font-size: 0.82em;
+            font-weight: 600;
+            background: rgba(255,107,53,0.08);
+            padding: 4px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,107,53,0.2);
+        }
+
+        .update-type {
+            display: inline-block;
+            padding: 3px 11px;
+            border-radius: 14px;
+            font-size: 0.75em;
+            font-weight: 700;
+            margin-right: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .type-feature    { background: rgba(255,107,53,0.14); color: #ff8c60; border: 1px solid rgba(255,107,53,0.3); }
+        .type-fix        { background: rgba(74,222,128,0.1);  color: #4ade80; border: 1px solid rgba(74,222,128,0.25); }
+        .type-improvement{ background: rgba(250,204,21,0.1);  color: #facc15; border: 1px solid rgba(250,204,21,0.25); }
+        .type-mega       { background: linear-gradient(135deg, rgba(255,107,53,0.3), rgba(255,60,0,0.2)); color: #ff6b35; border: 1px solid rgba(255,107,53,0.5); box-shadow: 0 0 10px rgba(255,107,53,0.25); font-size: 0.8em; }
+
+        .update-content {
+            line-height: 1.8;
+        }
+
+        .update-content ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        .update-content li {
+            margin-bottom: 7px;
+            color: rgba(255,255,255,0.8);
+            font-size: 0.95em;
+        }
+
+        .update-content li::marker {
+            color: var(--accent);
+        }
+
+        .suggest-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 16px;
+            padding: 10px 20px;
+            background: rgba(255,107,53,0.12);
+            border: 2px solid rgba(255,107,53,0.4);
+            color: var(--accent);
+            text-decoration: none;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+            transition: all 0.2s ease;
+            box-shadow: 0 0 16px rgba(255,107,53,0.2);
+        }
+
+        .suggest-btn:hover {
+            background: rgba(255,107,53,0.22);
+            box-shadow: 0 0 28px rgba(255,107,53,0.4);
+            transform: translateY(-2px);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: rgba(255,107,53,0.5);
+            font-size: 0.85em;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    <div class="grid-overlay"></div>
+
+    <div class="container">
+        <header>
+            <div class="header-logo">🚀</div>
+            <h1>System Update Log</h1>
+            <p class="subtitle">Tracking changes across the galaxy</p>
+        </header>
+
+        <!-- ── BIGGEST UPDATE EVER ── -->
+        <div class="update-entry mega">
+            <div class="mega-badge">⚡ Biggest Update Ever</div>
+            <div class="update-header">
+                <span class="version">🌌 v2.0 "MASSIVE OVERHAUL"</span>
+                <span class="date">February 28, 2026</span>
+            </div>
+            <div class="update-content">
+                <span class="update-type type-mega">🔥 Mega Update</span>
+                <span class="update-type type-feature">New Feature</span>
+                <span class="update-type type-improvement">Improvement</span>
+                <ul>
+                    <li>Added <strong style="color:var(--accent)">2,500+ new games</strong> — the biggest games drop in System history</li>
+                    <li>Completely redid all UI across every page</li>
+                    <li>New cosmic home page with sidebar navigation</li>
+                    <li>Added Code Editor app</li>
+                    <li>Redesigned update log, terms, and all pages to match new theme</li>
+                    <li>Performance improvements across the board</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="update-entry">
+            <div class="update-header">
+                <span class="version">🌌 v1.7 "Fixed Games"</span>
+                <span class="date">February 19, 2026</span>
+            </div>
+            <div class="update-content">
+                <span class="update-type type-fix">Bug Fix</span>
+                <ul>
+                    <li>Fixed escape room.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="update-entry">
+            <div class="update-header">
+                <span class="version">🌌 v1.6 "Apps"</span>
+                <span class="date">February 10, 2026</span>
+            </div>
+            <div class="update-content">
+                <span class="update-type type-feature">New Feature</span>
+                <ul>
+                    <li>Code Editor</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="update-entry">
+            <div class="update-header">
+                <span class="version">🌌 v1.5 "INSANE GAMES"</span>
+                <span class="date">February 7, 2026</span>
+            </div>
+            <div class="update-content">
+                <span class="update-type type-feature">New Feature</span>
+                <ul>
+                    <li>Minecraft Mods</li>
+                    <li>New UI</li>
+                    <li>Added more AI</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="update-entry">
+            <div class="update-header">
+                <span class="version">🌌 v1.4 "Games"</span>
+                <span class="date">January 21, 2026</span>
+            </div>
+            <div class="update-content">
+                <span class="update-type type-feature">New Feature</span>
+                <span class="update-type type-improvement">Improvement</span>
+                <ul>
+                    <li>Changed UI</li>
+                    <li>Added a bunch of games</li>
+                </ul>
+                <a href="https://docs.google.com/forms/d/e/1FAIpQLScgXwyjX0fFh1FXS6JWTESRVQ33o1OtV8b0gyCPpgF86v6WVg/viewform"
+                   class="suggest-btn" target="_blank">🎮 Suggest Games</a>
+            </div>
+        </div>
+
+        <div class="update-entry">
+            <div class="update-header">
+                <span class="version">🌌 v1.3 "UI"</span>
+                <span class="date">December 29, 2025</span>
+            </div>
+            <div class="update-content">
+                <span class="update-type type-feature">New Feature</span>
+                <span class="update-type type-improvement">Improvement</span>
+                <ul>
+                    <li>Changed UI</li>
+                    <li>Added all FNAF</li>
+                    <li>Added Basketrandom</li>
+                    <li>Added new home</li>
+                    <li>Added new game UI</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="update-entry">
+            <div class="update-header">
+                <span class="version">🌌 v1.2 "UI"</span>
+                <span class="date">December 18, 2025</span>
+            </div>
+            <div class="update-content">
+                <span class="update-type type-improvement">Improvement</span>
+                <span class="update-type type-feature">New Feature</span>
+                <ul>
+                    <li>Changed UI</li>
+                    <li>Added Football Bros</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="update-entry">
+            <div class="update-header">
+                <span class="version">🌌 v1.1 "Bugs"</span>
+                <span class="date">December 18, 2025</span>
+            </div>
+            <div class="update-content">
+                <span class="update-type type-fix">Bug Fix</span>
+                <ul>
+                    <li>Fixed games error again</li>
+                    <li>Fixed chat error</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="update-entry">
+            <div class="update-header">
+                <span class="version">🌌 v1.0 "Launch"</span>
+                <span class="date">December 18, 2025</span>
+            </div>
+            <div class="update-content">
+                <span class="update-type type-fix">Bug Fix</span>
+                <span class="update-type type-feature">New Feature</span>
+                <ul>
+                    <li>Fixed games error</li>
+                    <li>Fixed chat error</li>
+                    <li>Added update log</li>
+                </ul>
+            </div>
+        </div>
+
+        <footer>🌟 Stay tuned for more cosmic updates 🌟</footer>
+    </div>
+
+    <script>
+        const starsContainer = document.getElementById('stars');
+        for (let i = 0; i < 120; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.animationDelay = Math.random() * 3 + 's';
+            star.style.animationDuration = (Math.random() * 3 + 2) + 's';
+            starsContainer.appendChild(star);
+        }
+    </script>
+</body>
+</html>

@@ -581,6 +581,45 @@
             .banner { max-width: 100%; }
         }
 
+        /* ─── QUICK ACTIONS ─── */
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .quick-btn {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 11px 22px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: rgba(255,255,255,0.75);
+            text-decoration: none;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.88em;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(6px);
+        }
+
+        .quick-btn i {
+            color: var(--accent);
+            font-size: 1em;
+        }
+
+        .quick-btn:hover {
+            background: rgba(255,255,255,0.11);
+            border-color: var(--accent);
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px var(--accent-glow);
+        }
+
         /* Scrollbar */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -601,11 +640,13 @@
         <div class="sidebar-divider"></div>
         <a href="#" class="sidebar-btn active" data-tip="Home"><i class="fas fa-house"></i></a>
         <a href="https://sites.google.com/egusd.net/norandompeople/home/games" class="sidebar-btn" data-tip="Games"><i class="fas fa-gamepad"></i></a>
-        <a href="#" class="sidebar-btn" data-tip="Videos"><i class="fas fa-film"></i></a>
         <a href="https://sites.google.com/egusd.net/norandompeople/home/home/chat" class="sidebar-btn" data-tip="Chat"><i class="fas fa-comments"></i></a>
         <a href="https://m365.cloud.microsoft/chat/?auth=2" class="sidebar-btn" data-tip="AI"><i class="fas fa-robot"></i></a>
+        <a href="https://sites.google.com/egusd.net/norandompeople/home/apps/code-editor" class="sidebar-btn" data-tip="Code Editor"><i class="fas fa-code"></i></a>
         <div class="sidebar-spacer"></div>
         <div class="sidebar-divider"></div>
+        <a href="https://forms.gle/AnHxK52yjQ8mWvt5A" class="sidebar-btn" data-tip="DMCA"><i class="fas fa-copyright"></i></a>
+        <a href="https://sites.google.com/egusd.net/norandompeople/home/information/legal-stuff" class="sidebar-btn" data-tip="Legal"><i class="fas fa-scale-balanced"></i></a>
         <a href="https://docs.google.com/forms/d/e/1FAIpQLScgXwyjX0fFh1FXS6JWTESRVQ33o1OtV8b0gyCPpgF86v6WVg/viewform" class="sidebar-btn" data-tip="Suggest"><i class="fas fa-tools"></i></a>
         <a href="https://sites.google.com/egusd.net/norandompeople/home/information/update-log" class="sidebar-btn" data-tip="Updates"><i class="fas fa-file-lines"></i></a>
         <a href="https://sites.google.com/search/egusd.net/norandompeople?query=&scope=site" class="sidebar-btn" data-tip="Search"><i class="fas fa-magnifying-glass"></i></a>

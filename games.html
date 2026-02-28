@@ -307,6 +307,49 @@
       white-space: nowrap; user-select: none;
     }
 
+    /* ── HOME BUTTON ── */
+    #home-btn {
+      position: fixed;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+    #home-btn-inner {
+      width: 46px;
+      height: 46px;
+      background: #000000;
+      border: 1.5px solid #ffffff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: #ffffff;
+      box-shadow: 0 0 14px rgba(255,255,255,0.55), 0 0 32px rgba(255,255,255,0.2), inset 0 0 10px rgba(255,255,255,0.04);
+      transition: transform .2s, box-shadow .2s;
+    }
+    #home-btn:hover #home-btn-inner {
+      transform: scale(1.12);
+      box-shadow: 0 0 24px rgba(255,255,255,0.9), 0 0 60px rgba(255,255,255,0.35), inset 0 0 14px rgba(255,255,255,0.07);
+    }
+    #home-btn-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      transition: color .2s;
+    }
+    #home-btn:hover #home-btn-label {
+      color: rgba(255,255,255,0.8);
+    }
+
     /* ── OPEN AS BLOB BUTTON ── */
     #open-blob-btn {
       position: fixed;
@@ -431,6 +474,7 @@
       #game-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
       #open-blob-btn span.blob-label { display: none; }
       #open-blob-btn { padding: 0 14px 0 12px; }
+      #home-btn { display: none; }
     }
   </style>
 </head>
@@ -445,6 +489,13 @@
 <div id="bg-orbs"><span></span><span></span><span></span><span></span></div>
 <div id="bg-noise"></div>
 <div id="bg-scan"></div>
+
+<!-- ── HOME BUTTON ── -->
+<a id="home-btn" href="https://sites.google.com/egusd.net/norandompeople/home/home" target="_blank">
+  <div id="home-btn-inner"><i class="fa-solid fa-house"></i></div>
+  <span id="home-btn-label">Home</span>
+</a>
+
 <div id="page">
   <nav id="nav">
     <a href="#" class="logo" onclick="return false;">
@@ -789,17 +840,12 @@ async function init(){
 }
 init();
 
-/* ── OPEN SELF AS BLOB ──
-   Grabs the current live DOM (document.documentElement.outerHTML),
-   wraps it in a proper doctype, creates a blob URL, and opens it
-   in a new tab — no network request, works instantly. */
 function openSelfAsBlob() {
   try {
     const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
     const blob = new Blob([html], { type: 'text/html' });
     const url  = URL.createObjectURL(blob);
     const tab  = window.open(url, '_blank');
-    // Revoke the URL after the tab has had time to load
     if (tab) {
       tab.addEventListener('load', () => URL.revokeObjectURL(url), { once: true });
       setTimeout(() => URL.revokeObjectURL(url), 10000);
@@ -813,7 +859,6 @@ function openSelfAsBlob() {
 (function(){
   const notify = document.getElementById('fs-notify');
   let timer;
-  // Show after 1.2s so the page has settled
   setTimeout(() => {
     notify.classList.add('show');
     timer = setTimeout(dismissNotify, 6000);
