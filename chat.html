@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Chat</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --accent: #ff6b35;
+            --accent-dark: #cc4f1f;
+            --accent-glow: rgba(255, 107, 53, 0.55);
+            --bg: #0d0601;
+            --sidebar-bg: #0a0400;
+            --border: rgba(255,107,53,0.25);
+            --text: #fff;
+            --text-muted: rgba(255,255,255,0.45);
+        }
+
+        /* ── THEMES ── */
+        body.theme-ocean   { --accent:#4ab8d8; --accent-dark:#0099bb; --accent-glow:rgba(74,184,216,0.55); }
+        body.theme-sunset  { --accent:#ff7c44; --accent-dark:#dd5500; --accent-glow:rgba(255,124,68,0.55); }
+        body.theme-forest  { --accent:#4caf72; --accent-dark:#2d8a50; --accent-glow:rgba(76,175,114,0.55); }
+        body.theme-neon    { --accent:#c44ef5; --accent-dark:#9620d1; --accent-glow:rgba(196,78,245,0.55); }
+        body.theme-fire    { --accent:#ff4520; --accent-dark:#cc2200; --accent-glow:rgba(255,69,32,0.55); }
+        body.theme-ice     { --accent:#5ce0f5; --accent-dark:#00b8d4; --accent-glow:rgba(92,224,245,0.55); }
+        body.theme-galaxy  { --accent:#a855f7; --accent-dark:#7c3aed; --accent-glow:rgba(168,85,247,0.55); }
+        body.theme-matrix  { --accent:#22ff55; --accent-dark:#00cc34; --accent-glow:rgba(34,255,85,0.55); }
+        body.theme-cyber   { --accent:#ff22ff; --accent-dark:#cc00cc; --accent-glow:rgba(255,34,255,0.55); }
+        body.theme-gold    { --accent:#ffc520; --accent-dark:#cc9900; --accent-glow:rgba(255,197,32,0.55); }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* ── BACKGROUND ── */
+        .cosmic-background {
+            position: fixed; inset: 0; z-index: 0;
+            background: radial-gradient(ellipse at center, #1e0c03 0%, #060200 100%);
+            transition: background 0.5s ease;
+        }
+        body.theme-ocean  .cosmic-background { background: radial-gradient(ellipse at center, #041418 0%, #020a0f 100%); }
+        body.theme-sunset .cosmic-background { background: radial-gradient(ellipse at center, #1e0c03 0%, #0d0501 100%); }
+        body.theme-forest .cosmic-background { background: radial-gradient(ellipse at center, #031408 0%, #010a04 100%); }
+        body.theme-neon   .cosmic-background { background: radial-gradient(ellipse at center, #150520 0%, #0a0214 100%); }
+        body.theme-fire   .cosmic-background { background: radial-gradient(ellipse at center, #1a0602 0%, #0a0201 100%); }
+        body.theme-ice    .cosmic-background { background: radial-gradient(ellipse at center, #041418 0%, #020a0f 100%); }
+        body.theme-galaxy .cosmic-background { background: radial-gradient(ellipse at center, #120520 0%, #080114 100%); }
+        body.theme-matrix .cosmic-background { background: radial-gradient(ellipse at center, #031408 0%, #010a04 100%); }
+        body.theme-cyber  .cosmic-background { background: radial-gradient(ellipse at center, #180318 0%, #0a010a 100%); }
+        body.theme-gold   .cosmic-background { background: radial-gradient(ellipse at center, #1a1002 0%, #0a0701 100%); }
+
+        /* Scan lines */
+        .cosmic-background::after {
+            content: '';
+            position: absolute; inset: 0; pointer-events: none;
+            background: repeating-linear-gradient(0deg, rgba(255,107,53,0.018) 0px, transparent 1px, transparent 2px, rgba(255,107,53,0.018) 3px);
+            animation: scanMove 8s linear infinite;
+        }
+        @keyframes scanMove { 0%{transform:translateY(0)} 100%{transform:translateY(100px)} }
+
+        /* Grid */
+        .grid-overlay {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background-image: linear-gradient(rgba(255,107,53,0.025) 1px,transparent 1px), linear-gradient(90deg,rgba(255,107,53,0.025) 1px,transparent 1px);
+            background-size: 50px 50px; opacity: 0.5;
+        }
+
+        #cosmicCanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+        /* ── HOME BUTTON (top-right, above theme) ── */
+        #home-btn {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 9000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px 9px 14px;
+            background: rgba(14,6,1,0.9);
+            border: 1.5px solid rgba(255,107,53,0.45);
+            border-radius: 50px;
+            color: var(--accent);
+            text-decoration: none;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.78em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            box-shadow: 0 0 16px var(--accent-glow);
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+        }
+        #home-btn:hover {
+            background: rgba(255,107,53,0.15);
+            border-color: var(--accent);
+            box-shadow: 0 0 28px var(--accent-glow);
+            transform: translateY(-2px);
+        }
+        #home-btn .btn-icon {
+            width: 24px; height: 24px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.9em; color: #fff;
+            box-shadow: 0 0 10px var(--accent-glow);
+            flex-shrink: 0;
+        }
+
+        /* ── WELCOME MODAL ── */
+        .welcome-modal {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.92);
+            backdrop-filter: blur(14px);
+            z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .welcome-modal.hidden { display: none; }
+
+        .welcome-content {
+            background: rgba(14,6,1,0.97);
+            border: 2px solid var(--accent);
+            clip-path: polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
+            border-radius: 4px;
+            padding: 44px 40px;
+            max-width: 480px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 0 50px var(--accent-glow), 0 0 100px rgba(255,107,53,0.2);
+            animation: modalIn 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .welcome-content::before {
+            content: '';
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 3px;
+            background: linear-gradient(90deg,transparent,var(--accent),transparent);
+            animation: energyFlow 2.5s linear infinite;
+        }
+        @keyframes energyFlow { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+        @keyframes modalIn { from{opacity:0;transform:translateY(-30px) scale(0.95)} to{opacity:1;transform:none} }
+
+        .welcome-logo {
+            width: 54px; height: 54px;
+            background: var(--accent);
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6em;
+            margin: 0 auto 20px;
+            box-shadow: 0 4px 28px var(--accent-glow);
+            animation: logoBob 3s ease-in-out infinite;
+        }
+        @keyframes logoBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+
+        .welcome-title {
+            font-family: 'Nunito', sans-serif;
+            font-size: 2em; font-weight: 900;
+            color: var(--accent);
+            text-transform: uppercase; letter-spacing: 4px;
+            text-shadow: 0 0 20px var(--accent-glow);
+            margin-bottom: 14px;
+        }
+        .welcome-text {
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 28px;
+            font-size: 0.95em; line-height: 1.65;
+        }
+        .name-input {
+            width: 100%; padding: 13px 18px;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid rgba(255,107,53,0.4);
+            border-radius: 10px;
+            color: #fff; font-family: 'Space Grotesk', sans-serif; font-size: 1em;
+            margin-bottom: 16px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        .name-input:focus { border-color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); }
+        .name-input::placeholder { color: rgba(255,255,255,0.3); }
+
+        .join-btn {
+            width: 100%; padding: 14px;
+            background: var(--accent);
+            border: 2px solid var(--accent);
+            border-radius: 10px;
+            color: #fff; font-family: 'Nunito', sans-serif;
+            font-size: 1.05em; font-weight: 800; letter-spacing: 0.05em;
+            cursor: pointer;
+            box-shadow: 0 4px 24px var(--accent-glow);
+            transition: all 0.2s ease;
+        }
+        .join-btn:hover { filter: brightness(1.12); transform: translateY(-2px); box-shadow: 0 6px 32px var(--accent-glow); }
+
+        /* ── LAYOUT ── */
+        .chat-container {
+            position: relative; z-index: 1;
+            display: flex; height: 100vh;
+        }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            width: 260px;
+            background: rgba(10,4,0,0.97);
+            backdrop-filter: blur(20px);
+            border-right: 2px solid var(--accent);
+            display: flex; flex-direction: column;
+            box-shadow: 4px 0 28px var(--accent-glow);
+            flex-shrink: 0;
+        }
+        .sidebar-header {
+            padding: 22px 20px;
+            border-bottom: 1px solid rgba(255,107,53,0.2);
+            background: rgba(255,107,53,0.06);
+            position: relative; overflow: hidden;
+        }
+        .sidebar-header::before {
+            content: '';
+            position: absolute; bottom: 0; left: 0;
+            width: 100%; height: 2px;
+            background: linear-gradient(90deg,transparent,var(--accent),transparent);
+            animation: energyFlow 3s linear infinite;
+        }
+        .server-name {
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.2em; font-weight: 900;
+            color: var(--accent);
+            text-transform: uppercase; letter-spacing: 3px;
+            text-shadow: 0 0 12px var(--accent-glow);
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        .channels { flex: 1; overflow-y: auto; padding: 16px; }
+        .channels::-webkit-scrollbar { width: 4px; }
+        .channels::-webkit-scrollbar-track { background: transparent; }
+        .channels::-webkit-scrollbar-thumb { background: rgba(255,107,53,0.3); border-radius: 2px; }
+
+        .channel-category {
+            color: rgba(255,107,53,0.6);
+            font-size: 0.68em; text-transform: uppercase;
+            letter-spacing: 2px; margin: 18px 0 8px;
+            font-weight: 700;
+        }
+        .channel {
+            padding: 10px 14px; margin: 4px 0;
+            border-radius: 8px;
+            display: flex; align-items: center; gap: 10px;
+            color: rgba(255,255,255,0.45);
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9em; font-weight: 500;
+        }
+        .channel:hover {
+            background: rgba(255,107,53,0.08);
+            color: rgba(255,255,255,0.85);
+            border-color: rgba(255,107,53,0.2);
+            transform: translateX(4px);
+        }
+        .channel.active {
+            background: rgba(255,107,53,0.16);
+            color: var(--accent);
+            border-color: rgba(255,107,53,0.4);
+            box-shadow: 0 0 14px rgba(255,107,53,0.15);
+            font-weight: 700;
+        }
+
+        .user-area {
+            padding: 16px 18px;
+            border-top: 1px solid rgba(255,107,53,0.2);
+            background: rgba(0,0,0,0.5);
+            display: flex; align-items: center; gap: 12px;
+        }
+        .user-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--accent);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3em;
+            box-shadow: 0 0 16px var(--accent-glow);
+            border: 2px solid rgba(255,255,255,0.2);
+            flex-shrink: 0;
+        }
+        .user-info { flex: 1; min-width: 0; }
+        .username { font-weight: 700; font-size: 0.9em; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-status { font-size: 0.74em; color: #4ade80; display: flex; align-items: center; gap: 5px; margin-top: 2px; }
+        .status-dot { width: 7px; height: 7px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 6px #4ade80; animation: statusPulse 2s ease-in-out infinite; }
+        @keyframes statusPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+        .settings-btn {
+            width: 34px; height: 34px;
+            background: rgba(255,107,53,0.1);
+            border: 1px solid rgba(255,107,53,0.3);
+            border-radius: 8px; color: var(--accent);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s ease; font-size: 1em;
+            flex-shrink: 0;
+        }
+        .settings-btn:hover { background: var(--accent); color: #fff; transform: rotate(90deg); box-shadow: 0 0 14px var(--accent-glow); }
+
+        /* ── MAIN CHAT ── */
+        .main-chat { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+        .chat-header {
+            padding: 16px 22px;
+            background: rgba(10,4,0,0.97);
+            border-bottom: 2px solid var(--accent);
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 4px 24px var(--accent-glow);
+            flex-shrink: 0;
+        }
+        .channel-info { display: flex; align-items: center; gap: 14px; }
+        .channel-icon { font-size: 1.3em; color: var(--accent); text-shadow: 0 0 12px var(--accent-glow); }
+        .channel-name { font-family: 'Nunito', sans-serif; font-size: 1.1em; font-weight: 800; color: #fff; }
+        .channel-topic { color: rgba(255,255,255,0.4); font-size: 0.8em; margin-top: 2px; }
+
+        .header-buttons { display: flex; gap: 10px; align-items: center; }
+        .header-btn {
+            padding: 9px 16px;
+            background: rgba(255,107,53,0.12);
+            border: 1.5px solid rgba(255,107,53,0.35);
+            border-radius: 9px; color: var(--accent);
+            font-family: 'Space Grotesk', sans-serif; font-size: 0.82em; font-weight: 700;
+            display: flex; align-items: center; gap: 7px;
+            cursor: pointer; transition: all 0.2s ease;
+            text-transform: uppercase; letter-spacing: 0.06em;
+        }
+        .header-btn:hover { background: rgba(255,107,53,0.22); box-shadow: 0 0 18px var(--accent-glow); transform: translateY(-1px); }
+
+        .theme-dropdown { position: relative; }
+        .theme-menu {
+            display: none; position: absolute;
+            top: calc(100% + 10px); right: 0;
+            background: rgba(10,4,0,0.98);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--accent);
+            clip-path: polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+            padding: 12px;
+            min-width: 200px;
+            box-shadow: 0 8px 40px var(--accent-glow);
+            z-index: 1000;
+            max-height: 400px; overflow-y: auto;
+        }
+        .theme-menu.show { display: block; animation: dropIn 0.25s ease; }
+        @keyframes dropIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:none} }
+        .theme-option {
+            padding: 10px 14px; border-radius: 7px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 4px; cursor: pointer;
+            display: flex; align-items: center; gap: 10px;
+            font-size: 0.85em; font-weight: 600;
+            transition: all 0.15s ease;
+        }
+        .theme-option:hover { background: rgba(255,107,53,0.15); color: var(--accent); transform: translateX(4px); }
+
+        /* ── MESSAGES ── */
+        .messages-area { flex: 1; overflow-y: auto; padding: 20px; }
+        .messages-area::-webkit-scrollbar { width: 6px; }
+        .messages-area::-webkit-scrollbar-track { background: transparent; }
+        .messages-area::-webkit-scrollbar-thumb { background: rgba(255,107,53,0.25); border-radius: 3px; }
+        .messages-area::-webkit-scrollbar-thumb:hover { background: rgba(255,107,53,0.5); }
+
+        .message {
+            margin-bottom: 16px;
+            display: flex; gap: 14px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            background: rgba(14,6,1,0.5);
+            border: 1px solid rgba(255,255,255,0.05);
+            animation: msgIn 0.3s ease;
+            transition: all 0.2s ease;
+        }
+        .message:hover { background: rgba(255,107,53,0.06); border-color: rgba(255,107,53,0.2); }
+        @keyframes msgIn { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:none} }
+
+        .message-avatar {
+            width: 42px; height: 42px; border-radius: 50%;
+            background: var(--accent);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3em; flex-shrink: 0;
+            box-shadow: 0 0 14px var(--accent-glow);
+            border: 2px solid rgba(255,255,255,0.15);
+        }
+        .message-content { flex: 1; min-width: 0; }
+        .message-header { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+        .message-author { font-weight: 700; font-size: 0.95em; color: var(--accent); }
+        .message-time { font-size: 0.72em; color: rgba(255,255,255,0.3); }
+        .message-text { color: rgba(255,255,255,0.82); line-height: 1.6; font-size: 0.92em; word-break: break-word; }
+
+        /* ── INPUT ── */
+        .message-input-area {
+            padding: 18px 20px;
+            background: rgba(10,4,0,0.97);
+            border-top: 2px solid var(--accent);
+            box-shadow: 0 -4px 24px var(--accent-glow);
+            flex-shrink: 0;
+        }
+        .message-input-wrapper {
+            display: flex; gap: 10px;
+            background: rgba(0,0,0,0.5);
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1.5px solid rgba(255,107,53,0.35);
+            box-shadow: 0 0 18px rgba(255,107,53,0.12);
+            transition: border-color 0.2s ease;
+        }
+        .message-input-wrapper:focus-within { border-color: var(--accent); box-shadow: 0 0 28px var(--accent-glow); }
+        .message-input {
+            flex: 1; padding: 10px 14px;
+            background: transparent; border: none;
+            color: #fff; font-family: 'Space Grotesk', sans-serif; font-size: 0.95em;
+            outline: none;
+        }
+        .message-input::placeholder { color: rgba(255,255,255,0.3); }
+        .send-button {
+            padding: 10px 22px;
+            background: var(--accent);
+            border: none; border-radius: 9px;
+            color: #fff; font-family: 'Nunito', sans-serif;
+            font-weight: 800; font-size: 0.9em;
+            display: flex; align-items: center; gap: 7px;
+            cursor: pointer; transition: all 0.2s ease;
+            box-shadow: 0 3px 16px var(--accent-glow);
+        }
+        .send-button:hover { filter: brightness(1.1); transform: translateY(-1px) scale(1.02); }
+
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; left: -280px; top: 0; height: 100vh; z-index: 1000; transition: left 0.3s ease; }
+            .sidebar.open { left: 0; }
+            #home-btn .btn-label { display: none; }
+            #home-btn { padding: 9px 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="cosmic-background">
+        <canvas id="cosmicCanvas"></canvas>
+    </div>
+    <div class="grid-overlay"></div>
+
+    <!-- HOME BUTTON -->
+    <a id="home-btn" href="https://sites.google.com/egusd.net/norandompeople/home/home" target="_blank">
+        <div class="btn-icon">🏠</div>
+        <span class="btn-label">Home</span>
+    </a>
+
+    <!-- WELCOME MODAL -->
+    <div class="welcome-modal" id="welcomeModal">
+        <div class="welcome-content">
+            <div class="welcome-logo">🚀</div>
+            <div class="welcome-title">Cosmic Chat</div>
+            <p class="welcome-text">Join the cosmic community! Enter your username to start chatting with others in real-time.</p>
+            <input type="text" class="name-input" id="nameInput" placeholder="Enter your cosmic username..." maxlength="20">
+            <button class="join-btn" onclick="joinChat()">🚀 Launch into Chat</button>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="server-name">🚀 Cosmic Server</div>
+            </div>
+            <div class="channels">
+                <div class="channel-category">💬 Text Channels</div>
+                <div class="channel active" onclick="switchChannel('general', event)"># general</div>
+                <div class="channel" onclick="switchChannel('random', event)"># random</div>
+                <div class="channel" onclick="switchChannel('games', event)">🎮 games</div>
+                <div class="channel" onclick="switchChannel('movies', event)">🎬 movies</div>
+                <div class="channel" onclick="switchChannel('tech', event)">💻 tech</div>
+                <div class="channel" onclick="switchChannel('music', event)">🎵 music</div>
+            </div>
+            <div class="user-area">
+                <div class="user-avatar" id="userAvatar">🚀</div>
+                <div class="user-info">
+                    <div class="username" id="displayUsername">CosmicUser</div>
+                    <div class="user-status"><span class="status-dot"></span> Online</div>
+                </div>
+                <button class="settings-btn" onclick="changeUsername()">⚙️</button>
+            </div>
+        </div>
+
+        <div class="main-chat">
+            <div class="chat-header">
+                <div class="channel-info">
+                    <span class="channel-icon">#</span>
+                    <div>
+                        <div class="channel-name" id="currentChannel">general</div>
+                        <div class="channel-topic" id="channelTopic">Welcome to the cosmic hub! Chat in real-time!</div>
+                    </div>
+                </div>
+                <div class="header-buttons">
+                    <div class="theme-dropdown">
+                        <button class="header-btn" onclick="toggleThemeMenu()">🎨 Theme</button>
+                        <div id="themeMenu" class="theme-menu">
+                            <div class="theme-option" onclick="changeTheme('default')">🔥 System Orange</div>
+                            <div class="theme-option" onclick="changeTheme('ocean')">🌊 Ocean Blue</div>
+                            <div class="theme-option" onclick="changeTheme('sunset')">🌅 Sunset</div>
+                            <div class="theme-option" onclick="changeTheme('forest')">🌲 Forest</div>
+                            <div class="theme-option" onclick="changeTheme('neon')">⚡ Neon Purple</div>
+                            <div class="theme-option" onclick="changeTheme('fire')">🔥 Fire Red</div>
+                            <div class="theme-option" onclick="changeTheme('ice')">❄️ Ice Cyan</div>
+                            <div class="theme-option" onclick="changeTheme('galaxy')">🌌 Galaxy</div>
+                            <div class="theme-option" onclick="changeTheme('matrix')">💻 Matrix</div>
+                            <div class="theme-option" onclick="changeTheme('cyber')">🤖 Cyber</div>
+                            <div class="theme-option" onclick="changeTheme('gold')">👑 Gold</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="messages-area" id="messagesArea"></div>
+
+            <div class="message-input-area">
+                <div class="message-input-wrapper">
+                    <input type="text" class="message-input" id="messageInput" placeholder="Message #general">
+                    <button class="send-button" onclick="sendMessage()">✈️ Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, push, onChildAdded, query, limitToLast } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCajSTlUbhe3dEkm2n5AHQfwOmkUmsCzK8",
+            authDomain: "cosmiceditionchat.firebaseapp.com",
+            databaseURL: "https://cosmiceditionchat-default-rtdb.firebaseio.com",
+            projectId: "cosmiceditionchat",
+            storageBucket: "cosmiceditionchat.firebasestorage.app",
+            messagingSenderId: "307679721622",
+            appId: "1:307679721622:web:56a567006eec9b17806ab7"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        window.db = database;
+        window.dbRef = ref;
+        window.dbPush = push;
+        window.dbOnChildAdded = onChildAdded;
+        window.dbQuery = query;
+        window.dbLimitToLast = limitToLast;
+
+        const emojis = ['🚀','⭐','🌟','💫','🌙','☀️','🌈','⚡','🔥','💎','🎨','🎭','🎪','🎯'];
+        let currentChannel = 'general';
+        let username = '';
+        let userEmoji = '🚀';
+
+        // Canvas background
+        const canvas = document.getElementById('cosmicCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const stars = Array.from({length: 180}, () => ({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: Math.random() * 1.8 + 0.2,
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: (Math.random() - 0.5) * 0.3,
+            opacity: Math.random() * 0.5 + 0.2,
+            twinkle: Math.random() * 0.006 + 0.002,
+            twinkleDir: 1
+        }));
+
+        function getAccentRGB() {
+            const v = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+            const hex = v.replace('#','');
+            return [parseInt(hex.substr(0,2),16), parseInt(hex.substr(2,2),16), parseInt(hex.substr(4,2),16)];
+        }
+
+        (function animateStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const [r,g,b] = getAccentRGB();
+            stars.forEach(s => {
+                s.opacity += s.twinkle * s.twinkleDir;
+                if (s.opacity > 0.75 || s.opacity < 0.05) s.twinkleDir *= -1;
+                s.x += s.vx; s.y += s.vy;
+                if (s.x < 0) s.x = canvas.width; if (s.x > canvas.width) s.x = 0;
+                if (s.y < 0) s.y = canvas.height; if (s.y > canvas.height) s.y = 0;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${r},${g},${b},${s.opacity})`;
+                ctx.fill();
+            });
+            requestAnimationFrame(animateStars);
+        })();
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        window.joinChat = function() {
+            const name = document.getElementById('nameInput').value.trim();
+            if (!name) { alert('Please enter a username!'); return; }
+            username = name;
+            userEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+            document.getElementById('displayUsername').textContent = username;
+            document.getElementById('userAvatar').textContent = userEmoji;
+            document.getElementById('welcomeModal').classList.add('hidden');
+            loadMessages();
+        };
+
+        window.changeUsername = function() {
+            const n = prompt('Enter new username:', username);
+            if (n && n.trim()) { username = n.trim(); document.getElementById('displayUsername').textContent = username; }
+        };
+
+        window.sendMessage = function() {
+            const input = document.getElementById('messageInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            window.dbPush(window.dbRef(window.db, `messages/${currentChannel}`), {
+                username, emoji: userEmoji, text: msg, timestamp: Date.now(), channel: currentChannel
+            });
+            input.value = '';
+        };
+
+        function loadMessages() {
+            const q = window.dbQuery(window.dbRef(window.db, `messages/${currentChannel}`), window.dbLimitToLast(50));
+            document.getElementById('messagesArea').innerHTML = '';
+            window.dbOnChildAdded(q, snap => displayMessage(snap.val()));
+        }
+
+        function displayMessage(msg) {
+            const area = document.getElementById('messagesArea');
+            const div = document.createElement('div');
+            div.className = 'message';
+            const time = new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            div.innerHTML = `
+                <div class="message-avatar">${msg.emoji}</div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="message-author">${msg.username}</span>
+                        <span class="message-time">${time}</span>
+                    </div>
+                    <div class="message-text">${msg.text}</div>
+                </div>`;
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        window.switchChannel = function(name, e) {
+            currentChannel = name;
+            document.getElementById('currentChannel').textContent = name;
+            document.getElementById('messageInput').placeholder = `Message #${name}`;
+            document.querySelectorAll('.channel').forEach(c => c.classList.remove('active'));
+            if (e && e.currentTarget) e.currentTarget.classList.add('active');
+            const topics = {
+                general: 'Welcome to the cosmic hub! Chat in real-time!',
+                random: 'Talk about anything and everything!',
+                games: 'Discuss your favorite games!',
+                movies: 'Share and discuss movies & shows!',
+                tech: 'All things technology and coding!',
+                music: 'Share your favorite tunes!'
+            };
+            document.getElementById('channelTopic').textContent = topics[name] || '';
+            loadMessages();
+        };
+
+        window.toggleThemeMenu = function() {
+            document.getElementById('themeMenu').classList.toggle('show');
+        };
+
+        window.changeTheme = function(theme) {
+            document.body.className = theme === 'default' ? '' : `theme-${theme}`;
+            document.getElementById('themeMenu').classList.remove('show');
+            try { localStorage.setItem('chatTheme', theme); } catch(e) {}
+        };
+
+        document.addEventListener('click', e => {
+            const dd = document.querySelector('.theme-dropdown');
+            if (dd && !dd.contains(e.target)) document.getElementById('themeMenu').classList.remove('show');
+        });
+
+        document.getElementById('messageInput').addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
+        document.getElementById('nameInput').addEventListener('keypress', e => { if (e.key === 'Enter') joinChat(); });
+
+        // Load saved theme
+        try {
+            const t = localStorage.getItem('chatTheme');
+            if (t && t !== 'default') document.body.className = `theme-${t}`;
+        } catch(e) {}
+    </script>
+</body>
+</html>
