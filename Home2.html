@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #140a02;
+            --bg2: #0d0601;
+            --accent: #ff6b35;
+            --accent-glow: rgba(255,107,53,0.35);
+            --text: #fff;
+            --text-muted: rgba(255,255,255,0.5);
+        }
+
+        body.theme-ocean  { --accent:#4ab8d8; --accent-glow:rgba(74,184,216,0.3);  --bg:#060e14; --bg2:#030a0f; }
+        body.theme-sunset { --accent:#ff7c44; --accent-glow:rgba(255,124,68,0.3);  --bg:#150806; --bg2:#0f0503; }
+        body.theme-forest { --accent:#4caf72; --accent-glow:rgba(76,175,114,0.3);  --bg:#061008; --bg2:#040c06; }
+        body.theme-neon   { --accent:#c44ef5; --accent-glow:rgba(196,78,245,0.3);  --bg:#0e0614; --bg2:#0a030f; }
+        body.theme-fire   { --accent:#ff4520; --accent-glow:rgba(255,69,32,0.3);   --bg:#140602; --bg2:#0f0401; }
+        body.theme-ice    { --accent:#5ce0f5; --accent-glow:rgba(92,224,245,0.3);  --bg:#060e14; --bg2:#030a0f; }
+        body.theme-galaxy { --accent:#a855f7; --accent-glow:rgba(168,85,247,0.3);  --bg:#0e0618; --bg2:#090312; }
+        body.theme-matrix { --accent:#22ff55; --accent-glow:rgba(34,255,85,0.3);   --bg:#030e04; --bg2:#020b03; }
+        body.theme-cyber  { --accent:#ff22ff; --accent-glow:rgba(255,34,255,0.3);  --bg:#0f0510; --bg2:#0a030b; }
+        body.theme-gold   { --accent:#ffc520; --accent-glow:rgba(255,197,32,0.3);  --bg:#120e02; --bg2:#0d0a01; }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg); color: var(--text);
+            overflow: hidden; height: 100vh; display: flex;
+        }
+        * { cursor: none; }
+
+        .cursor {
+            position:fixed; width:12px; height:12px;
+            background:var(--accent); border-radius:50%;
+            pointer-events:none; z-index:9999;
+            transform:translate(-50%,-50%);
+            transition:width .15s, height .15s;
+            mix-blend-mode:plus-lighter; opacity:.85;
+        }
+        .cursor-ring {
+            position:fixed; width:32px; height:32px;
+            border:1.5px solid var(--accent); border-radius:50%;
+            pointer-events:none; z-index:9998;
+            transform:translate(-50%,-50%);
+            transition:left .08s, top .08s, width .2s, height .2s, opacity .2s;
+            opacity:.4;
+        }
+        .cursor.hovered { width:6px; height:6px; }
+        .cursor-ring.hovered { width:48px; height:48px; opacity:.6; }
+
+        .main {
+            flex:1; position:relative;
+            display:flex; flex-direction:column;
+            align-items:center; justify-content:center; overflow:hidden;
+        }
+
+        canvas#bg { position:absolute; inset:0; width:100%; height:100%; }
+
+        .content {
+            position:relative; z-index:10;
+            display:flex; flex-direction:column;
+            align-items:center; gap:20px;
+            width:100%; max-width:700px; padding:20px;
+        }
+
+        /* TOP ROW: greeting + clock */
+        .top-row {
+            display:flex; align-items:center;
+            justify-content:space-between;
+            width:100%; max-width:520px;
+        }
+        .greeting {
+            font-family:'Nunito',sans-serif; font-weight:800;
+            font-size:.9em; color:var(--text-muted);
+        }
+        .greeting span { color:var(--accent); }
+        .clock-wrap { text-align:right; }
+        .clock {
+            font-weight:700; font-size:1.5em; color:#fff;
+            letter-spacing:.04em; line-height:1;
+        }
+        .clock-date { font-size:.68em; color:var(--text-muted); margin-top:2px; letter-spacing:.03em; }
+
+        /* BANNER */
+        .banner {
+            background:linear-gradient(135deg,#2a1408 0%,#3d1a0a 100%);
+            border:1px solid rgba(255,255,255,.1); border-radius:14px;
+            padding:12px 24px; display:flex; align-items:center; gap:16px;
+            width:100%; max-width:520px;
+            box-shadow:0 4px 30px rgba(0,0,0,.4);
+            transition:transform .2s; text-decoration:none; color:inherit;
+        }
+        .banner:hover { transform:translateY(-2px); }
+        .banner-emoji { font-size:2.2em; flex-shrink:0; }
+        .banner-text { font-family:'Nunito',sans-serif; font-weight:900; font-size:1em; line-height:1.3; }
+        .banner-text span { color:var(--accent); }
+        .banner-cta {
+            margin-left:auto; background:var(--accent); color:#fff;
+            border:none; border-radius:8px; padding:8px 18px;
+            font-family:'Nunito',sans-serif; font-weight:800; font-size:.85em;
+            white-space:nowrap; box-shadow:0 3px 14px var(--accent-glow);
+            cursor:pointer; flex-shrink:0;
+        }
+
+        /* TITLE */
+        .site-title {
+            font-family:'Nunito',sans-serif; font-weight:900;
+            font-size:5.5em; color:var(--accent); letter-spacing:-.02em;
+            text-shadow:0 0 60px var(--accent-glow),0 4px 40px var(--accent-glow);
+            line-height:1; animation:titleFloat 4s ease-in-out infinite;
+        }
+        @keyframes titleFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+        .site-subtitle { font-size:.9em; color:var(--text-muted); letter-spacing:.02em; margin-top:-10px; }
+
+        /* NAV CARDS */
+        .nav-cards {
+            display:grid; grid-template-columns:repeat(3,1fr);
+            gap:10px; width:100%; max-width:520px;
+        }
+        .nav-card {
+            background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);
+            border-radius:14px; padding:14px 12px;
+            display:flex; align-items:center; gap:11px;
+            text-decoration:none; color:var(--text);
+            transition:all .2s; backdrop-filter:blur(6px); cursor:pointer;
+        }
+        .nav-card:hover {
+            background:rgba(255,255,255,.09); border-color:rgba(255,255,255,.18);
+            transform:translateY(-3px); box-shadow:0 8px 28px rgba(0,0,0,.3);
+        }
+        .nav-card-icon {
+            width:36px; height:36px; border-radius:9px;
+            background:rgba(255,255,255,.07);
+            display:flex; align-items:center; justify-content:center;
+            font-size:.95em; color:var(--accent); flex-shrink:0; transition:all .2s;
+        }
+        .nav-card:hover .nav-card-icon {
+            background:var(--accent); color:#fff; box-shadow:0 4px 14px var(--accent-glow);
+        }
+        .nav-card-label { font-family:'Nunito',sans-serif; font-weight:800; font-size:.82em; color:rgba(255,255,255,.75); }
+        .nav-card-sub { font-size:.64em; color:rgba(255,255,255,.3); margin-top:1px; }
+
+        /* STATUS BAR */
+        .status-bar {
+            display:flex; align-items:center; gap:16px;
+            padding:9px 16px;
+            background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07);
+            border-radius:11px; width:100%; max-width:520px; flex-wrap:wrap;
+        }
+        .status-item { display:flex; align-items:center; gap:6px; font-size:.72em; color:rgba(255,255,255,.4); font-weight:600; }
+        .status-item i { color:var(--accent); opacity:.7; font-size:.85em; }
+        .status-dot {
+            width:6px; height:6px; border-radius:50%;
+            background:#4caf72; box-shadow:0 0 6px rgba(76,175,114,.5);
+            animation:pulse 2.5s ease-in-out infinite;
+        }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+        .status-sep { width:1px; height:14px; background:rgba(255,255,255,.08); }
+
+        /* SHORTCUT HINT */
+        .shortcut-hint {
+            font-size:.68em; color:rgba(255,255,255,.2);
+            display:flex; align-items:center; gap:7px; flex-wrap:wrap; justify-content:center;
+        }
+        .kbd {
+            padding:2px 7px; background:rgba(255,255,255,.06);
+            border:1px solid rgba(255,255,255,.1); border-radius:5px;
+            font-size:.9em; color:rgba(255,255,255,.35); font-family:monospace;
+        }
+
+        /* SETTINGS FAB */
+        .settings-fab { position:absolute; bottom:16px; right:16px; z-index:50; }
+        .settings-toggle {
+            width:40px; height:40px; border-radius:10px;
+            background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);
+            color:rgba(255,255,255,.5); font-size:.9em;
+            display:flex; align-items:center; justify-content:center;
+            transition:all .2s; cursor:pointer;
+        }
+        .settings-toggle:hover { background:rgba(255,255,255,.13); color:var(--accent); }
+        .settings-panel {
+            position:absolute; bottom:56px; right:0; width:260px;
+            background:#0e0808; border:1px solid rgba(255,255,255,.1);
+            border-radius:14px; padding:16px; display:none;
+            box-shadow:0 8px 40px rgba(0,0,0,.6); backdrop-filter:blur(20px);
+            max-height:420px; overflow-y:auto;
+        }
+        .settings-panel.open { display:block; animation:panelIn .2s ease; }
+        @keyframes panelIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        .panel-section-title {
+            font-size:.68em; font-weight:700; color:rgba(255,255,255,.4);
+            letter-spacing:.1em; text-transform:uppercase; margin-bottom:8px; margin-top:12px;
+        }
+        .panel-section-title:first-child { margin-top:0; }
+        .theme-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+        .theme-dot {
+            width:100%; aspect-ratio:1; border-radius:8px;
+            border:2px solid transparent; cursor:pointer; transition:all .2s;
+        }
+        .theme-dot:hover { transform:scale(1.15); }
+        .theme-dot.active { border-color:#fff; }
+        .theme-dot[data-theme="default"]{background:#e87060}
+        .theme-dot[data-theme="ocean"]  {background:#4ab8d8}
+        .theme-dot[data-theme="sunset"] {background:#ff7c44}
+        .theme-dot[data-theme="forest"] {background:#4caf72}
+        .theme-dot[data-theme="neon"]   {background:#c44ef5}
+        .theme-dot[data-theme="fire"]   {background:#ff4520}
+        .theme-dot[data-theme="ice"]    {background:#5ce0f5}
+        .theme-dot[data-theme="galaxy"] {background:#a855f7}
+        .theme-dot[data-theme="matrix"] {background:#22ff55}
+        .theme-dot[data-theme="cyber"]  {background:#ff22ff}
+        .theme-dot[data-theme="gold"]   {background:#ffc520}
+        .font-list { display:flex; flex-direction:column; gap:2px; }
+        .font-item {
+            padding:7px 10px; border-radius:8px; font-size:.82em;
+            color:rgba(255,255,255,.6); cursor:pointer; transition:all .15s;
+        }
+        .font-item:hover, .font-item.active { background:rgba(255,255,255,.07); color:var(--accent); }
+
+        /* SHORTCUT OVERLAY */
+        .shortcut-overlay {
+            position:fixed; inset:0; background:rgba(0,0,0,.75);
+            backdrop-filter:blur(10px); z-index:500;
+            display:flex; align-items:center; justify-content:center;
+            opacity:0; pointer-events:none; transition:opacity .2s;
+        }
+        .shortcut-overlay.show { opacity:1; pointer-events:all; }
+        .shortcut-modal {
+            background:#110c04; border:1px solid rgba(255,255,255,.1);
+            border-radius:18px; padding:26px 30px; width:360px;
+            box-shadow:0 20px 60px rgba(0,0,0,.6);
+        }
+        .shortcut-modal h3 {
+            font-family:'Nunito',sans-serif; font-weight:900; font-size:1em;
+            margin-bottom:16px; color:var(--accent); letter-spacing:.04em;
+        }
+        .shortcut-row {
+            display:flex; align-items:center; justify-content:space-between;
+            padding:8px 0; border-bottom:1px solid rgba(255,255,255,.05);
+            font-size:.82em; color:rgba(255,255,255,.6);
+        }
+        .shortcut-row:last-child { border-bottom:none; }
+        .shortcut-keys { display:flex; gap:4px; }
+
+        ::-webkit-scrollbar { width:4px; }
+        ::-webkit-scrollbar-track { background:transparent; }
+        ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.15); border-radius:2px; }
+    </style>
+</head>
+<body>
+    <div class="cursor" id="cursor"></div>
+    <div class="cursor-ring" id="cursorRing"></div>
+
+    <div class="main">
+        <canvas id="bg"></canvas>
+
+        <div class="content">
+
+            <!-- Greeting + Clock -->
+            <div class="top-row">
+                <div class="greeting" id="greeting">Hey, <span>gamer</span> 👋</div>
+                <div class="clock-wrap">
+                    <div class="clock" id="clock">00:00:00</div>
+                    <div class="clock-date" id="clockDate"></div>
+                </div>
+            </div>
+
+            <!-- Banner -->
+            <a href="#" id="bannerLink" class="banner">
+                <div class="banner-emoji">🚀</div>
+                <div class="banner-text"><span>MASSIVE UPDATE</span><br>Added FNAF + Remade UI</div>
+                <div class="banner-cta">SEE MORE</div>
+            </a>
+
+            <!-- Title -->
+            <h1 class="site-title">SYSTEM</h1>
+            <p class="site-subtitle">cosmic edition — your gateway to everything</p>
+
+            <!-- Quick Nav Cards -->
+            <div class="nav-cards">
+                <div class="nav-card" data-url="https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/games.html" data-name="Games">
+                    <div class="nav-card-icon"><i class="fas fa-gamepad"></i></div>
+                    <div><div class="nav-card-label">Games</div><div class="nav-card-sub">Play now</div></div>
+                </div>
+                <div class="nav-card" data-url="https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/chat.html" data-name="Chat">
+                    <div class="nav-card-icon"><i class="fas fa-comments"></i></div>
+                    <div><div class="nav-card-label">Chat</div><div class="nav-card-sub">Talk with others</div></div>
+                </div>
+                <div class="nav-card" data-url="https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Apps/Code-editor.html" data-name="Code Editor">
+                    <div class="nav-card-icon"><i class="fas fa-code"></i></div>
+                    <div><div class="nav-card-label">Code Editor</div><div class="nav-card-sub">Build stuff</div></div>
+                </div>
+                <div class="nav-card" data-url="https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Upadatelog.html" data-name="Updates">
+                    <div class="nav-card-icon"><i class="fas fa-file-lines"></i></div>
+                    <div><div class="nav-card-label">Update Log</div><div class="nav-card-sub">What's new</div></div>
+                </div>
+                <div class="nav-card" data-url="https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Legalstuff.html" data-name="Legal">
+                    <div class="nav-card-icon"><i class="fas fa-scale-balanced"></i></div>
+                    <div><div class="nav-card-label">Legal</div><div class="nav-card-sub">Policies</div></div>
+                </div>
+                <div class="nav-card" id="shortcutCard">
+                    <div class="nav-card-icon"><i class="fas fa-keyboard"></i></div>
+                    <div><div class="nav-card-label">Shortcuts</div><div class="nav-card-sub">Press <b style="color:var(--accent)">?</b> anytime</div></div>
+                </div>
+            </div>
+
+            <!-- Status bar -->
+            <div class="status-bar">
+                <div class="status-item"><div class="status-dot"></div>Online</div>
+                <div class="status-sep"></div>
+                <div class="status-item"><i class="fas fa-gamepad"></i>5 games</div>
+                <div class="status-sep"></div>
+                <div class="status-item"><i class="fas fa-bolt"></i>Fast load</div>
+                <div class="status-sep" id="lvSep" style="display:none"></div>
+                <div class="status-item" id="lastVisitEl" style="display:none"><i class="fas fa-clock"></i><span id="lastVisitText"></span></div>
+            </div>
+
+            <!-- Hint -->
+            <div class="shortcut-hint">
+                Press <span class="kbd">?</span> for shortcuts &nbsp;·&nbsp;
+                <span class="kbd">G</span> Games &nbsp;·&nbsp;
+                <span class="kbd">C</span> Chat &nbsp;·&nbsp;
+                <span class="kbd">T</span> Themes
+            </div>
+
+        </div>
+
+        <!-- Settings FAB -->
+        <div class="settings-fab" id="settingsFab">
+            <div class="settings-panel" id="settingsPanel">
+                <div class="panel-section-title">Themes</div>
+                <div class="theme-grid">
+                    <div class="theme-dot active" data-theme="default" title="Default" style="background:#ff6b35;"></div>
+                    <div class="theme-dot" data-theme="galaxy"  title="Galaxy"  style="background:#a855f7;"></div>
+                    <div class="theme-dot" data-theme="ocean"   title="Ocean"></div>
+                    <div class="theme-dot" data-theme="sunset"  title="Sunset"></div>
+                    <div class="theme-dot" data-theme="forest"  title="Forest"></div>
+                    <div class="theme-dot" data-theme="neon"    title="Neon"></div>
+                    <div class="theme-dot" data-theme="fire"    title="Fire"></div>
+                    <div class="theme-dot" data-theme="ice"     title="Ice"></div>
+                    <div class="theme-dot" data-theme="matrix"  title="Matrix"></div>
+                    <div class="theme-dot" data-theme="cyber"   title="Cyber"></div>
+                    <div class="theme-dot" data-theme="gold"    title="Gold"></div>
+                </div>
+                <div class="panel-section-title">Fonts</div>
+                <div class="font-list">
+                    <div class="font-item active" data-font="Space Grotesk">Space Grotesk</div>
+                    <div class="font-item" data-font="Nunito">Nunito</div>
+                    <div class="font-item" data-font="Orbitron"      style="font-family:'Orbitron';">Orbitron</div>
+                    <div class="font-item" data-font="Pacifico"      style="font-family:'Pacifico';">Pacifico</div>
+                    <div class="font-item" data-font="monospace"     style="font-family:monospace;">Monospace</div>
+                    <div class="font-item" data-font="Georgia"       style="font-family:Georgia;">Georgia</div>
+                    <div class="font-item" data-font="Comic Sans MS" style="font-family:'Comic Sans MS';">Comic Sans</div>
+                    <div class="font-item" data-font="Arial"         style="font-family:Arial;">Arial</div>
+                </div>
+            </div>
+            <button class="settings-toggle" id="settingsToggle"><i class="fas fa-sliders"></i></button>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Overlay -->
+    <div class="shortcut-overlay" id="shortcutOverlay">
+        <div class="shortcut-modal">
+            <h3><i class="fas fa-keyboard"></i> &nbsp;KEYBOARD SHORTCUTS</h3>
+            <div class="shortcut-row"><span>Open Games</span>        <div class="shortcut-keys"><span class="kbd">G</span></div></div>
+            <div class="shortcut-row"><span>Open Chat</span>         <div class="shortcut-keys"><span class="kbd">C</span></div></div>
+            <div class="shortcut-row"><span>Open Code Editor</span>  <div class="shortcut-keys"><span class="kbd">E</span></div></div>
+            <div class="shortcut-row"><span>Open Update Log</span>   <div class="shortcut-keys"><span class="kbd">U</span></div></div>
+            <div class="shortcut-row"><span>Toggle Themes panel</span><div class="shortcut-keys"><span class="kbd">T</span></div></div>
+            <div class="shortcut-row"><span>Show this menu</span>    <div class="shortcut-keys"><span class="kbd">?</span></div></div>
+            <div class="shortcut-row"><span>Close / Dismiss</span>   <div class="shortcut-keys"><span class="kbd">Esc</span></div></div>
+        </div>
+    </div>
+
+    <script>
+    // ── CURSOR ──
+    const cur = document.getElementById('cursor');
+    const ring = document.getElementById('cursorRing');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove', e => {
+        mx=e.clientX; my=e.clientY;
+        cur.style.left=mx+'px'; cur.style.top=my+'px';
+    });
+    (function loop(){
+        rx+=(mx-rx)*.12; ry+=(my-ry)*.12;
+        ring.style.left=rx+'px'; ring.style.top=ry+'px';
+        requestAnimationFrame(loop);
+    })();
+    document.addEventListener('mouseover', e => {
+        const over = e.target.closest('a,button,.nav-card,.theme-dot,.font-item,.banner,.shortcut-modal');
+        cur.classList.toggle('hovered', !!over);
+        ring.classList.toggle('hovered', !!over);
+    });
+
+    // ── CLOCK + GREETING ──
+    const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    function tick() {
+        const now = new Date();
+        const h = String(now.getHours()).padStart(2,'0');
+        const m = String(now.getMinutes()).padStart(2,'0');
+        const s = String(now.getSeconds()).padStart(2,'0');
+        document.getElementById('clock').textContent = `${h}:${m}:${s}`;
+        document.getElementById('clockDate').textContent = `${DAYS[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}`;
+        const hr = now.getHours();
+        const greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+        const emoji  = hr < 12 ? '☀️' : hr < 17 ? '🎮' : '🌙';
+        document.getElementById('greeting').innerHTML = `${greet}, <span>gamer</span> ${emoji}`;
+    }
+    tick(); setInterval(tick, 1000);
+
+    // ── BLOB LOADER ──
+    async function openBlob(url, name) {
+        if (name) { try { localStorage.setItem('sysLastVisit', name+'|'+Date.now()); updateLastVisit(); } catch(e){} }
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            let html = await res.text();
+            const base = url.substring(0, url.lastIndexOf('/')+1);
+            const poly = `<script>(function(){var s={};var l={getItem:function(k){return s.hasOwnProperty(k)?s[k]:null;},setItem:function(k,v){s[k]=String(v);},removeItem:function(k){delete s[k];},clear:function(){s={};},key:function(i){return Object.keys(s)[i]||null;},get length(){return Object.keys(s).length;}};try{localStorage.getItem('_t');}catch(e){Object.defineProperty(window,'localStorage',{value:l,writable:false});Object.defineProperty(window,'sessionStorage',{value:l,writable:false});}})();<\/script>`;
+            html = html.replace(/<head([^>]*)>/i, `<head$1><base href="${base}">${poly}`);
+            const blob = new Blob([html], {type:'text/html'});
+            window.open(URL.createObjectURL(blob), '_blank');
+        } catch(err) { alert('Failed to load: ' + err.message); }
+    }
+
+    // ── LAST VISIT ──
+    function updateLastVisit() {
+        try {
+            const lv = localStorage.getItem('sysLastVisit');
+            if (!lv) return;
+            const [page, ts] = lv.split('|');
+            const diff = Math.round((Date.now()-Number(ts))/60000);
+            const label = diff < 1 ? 'just now' : diff < 60 ? diff+'m ago' : Math.round(diff/60)+'h ago';
+            document.getElementById('lastVisitText').textContent = `Last: ${page} ${label}`;
+            document.getElementById('lastVisitEl').style.display = 'flex';
+            document.getElementById('lvSep').style.display = 'block';
+        } catch(e){}
+    }
+    updateLastVisit();
+
+    // ── NAV CARDS ──
+    document.querySelectorAll('.nav-card[data-url]').forEach(card => {
+        card.addEventListener('click', () => openBlob(card.dataset.url, card.dataset.name));
+    });
+
+    // ── BANNER ──
+    document.getElementById('bannerLink').addEventListener('click', e => {
+        e.preventDefault();
+        openBlob('https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Upadatelog.html', 'Updates');
+    });
+
+    // ── SHORTCUTS OVERLAY ──
+    const overlay = document.getElementById('shortcutOverlay');
+    document.getElementById('shortcutCard').addEventListener('click', () => overlay.classList.add('show'));
+    overlay.addEventListener('click', e => { if (!e.target.closest('.shortcut-modal')) overlay.classList.remove('show'); });
+
+    // ── KEYBOARD SHORTCUTS ──
+    const KEYS = {
+        g: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/games.html',
+        c: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/chat.html',
+        e: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Apps/Code-editor.html',
+        u: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Upadatelog.html',
+    };
+    const NAMES = { g:'Games', c:'Chat', e:'Code Editor', u:'Updates' };
+    document.addEventListener('keydown', e => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        const k = e.key.toLowerCase();
+        if (k === 'escape') { overlay.classList.remove('show'); document.getElementById('settingsPanel').classList.remove('open'); return; }
+        if (k === '?')  { overlay.classList.toggle('show'); return; }
+        if (k === 't')  { document.getElementById('settingsPanel').classList.toggle('open'); return; }
+        if (KEYS[k])    { openBlob(KEYS[k], NAMES[k]); }
+    });
+
+    // ── SETTINGS ──
+    const panel = document.getElementById('settingsPanel');
+    document.getElementById('settingsToggle').addEventListener('click', e => { e.stopPropagation(); panel.classList.toggle('open'); });
+    document.addEventListener('click', e => { if (!document.getElementById('settingsFab').contains(e.target)) panel.classList.remove('open'); });
+
+    // ── THEMES ──
+    document.querySelectorAll('.theme-dot').forEach(dot => {
+        dot.addEventListener('click', () => {
+            const t = dot.dataset.theme;
+            document.body.className = t==='default' ? '' : 'theme-'+t;
+            document.querySelectorAll('.theme-dot').forEach(d=>d.classList.remove('active'));
+            dot.classList.add('active');
+            try { localStorage.setItem('sysTheme', t); } catch(e){}
+        });
+    });
+
+    // ── FONTS ──
+    document.querySelectorAll('.font-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const f = item.dataset.font;
+            document.body.style.fontFamily = f+', sans-serif';
+            document.querySelectorAll('.font-item').forEach(fi=>fi.classList.remove('active'));
+            item.classList.add('active');
+            try { localStorage.setItem('sysFont', f); } catch(e){}
+        });
+    });
+
+    // ── LOAD SAVED PREFS ──
+    window.addEventListener('load', () => {
+        try {
+            const t = localStorage.getItem('sysTheme') || 'default';
+            if (t !== 'default') document.body.className = 'theme-'+t;
+            document.querySelectorAll('.theme-dot').forEach(d=>d.classList.toggle('active', d.dataset.theme===t));
+            const f = localStorage.getItem('sysFont');
+            if (f) {
+                document.body.style.fontFamily = f+', sans-serif';
+                document.querySelectorAll('.font-item').forEach(i=>i.classList.toggle('active', i.dataset.font===f));
+            }
+        } catch(e){}
+    });
+
+    // ── CANVAS BG ──
+    const canvas = document.getElementById('bg');
+    const ctx = canvas.getContext('2d');
+    let W=canvas.width=canvas.offsetWidth, H=canvas.height=canvas.offsetHeight;
+    const particles = Array.from({length:120}, ()=>({
+        x:Math.random()*W, y:Math.random()*H,
+        size:Math.random()*2.5+.3,
+        vx:(Math.random()-.5)*.3, vy:(Math.random()-.5)*.3,
+        opacity:Math.random()*.5+.1,
+        twinkle:Math.random()*.008+.003, twinkleDir:1
+    }));
+    function getAccentRGB() {
+        const v = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim().replace('#','');
+        return [parseInt(v.substr(0,2),16),parseInt(v.substr(2,2),16),parseInt(v.substr(4,2),16)];
+    }
+    function draw() {
+        ctx.clearRect(0,0,W,H);
+        const [r,g,b] = getAccentRGB();
+        particles.forEach(p=>{
+            p.opacity+=p.twinkle*p.twinkleDir;
+            if(p.opacity>.7||p.opacity<.05) p.twinkleDir*=-1;
+            p.x+=p.vx; p.y+=p.vy;
+            if(p.x<0)p.x=W; if(p.x>W)p.x=0; if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+            ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+            ctx.fillStyle=`rgba(${r},${g},${b},${p.opacity})`; ctx.fill();
+        });
+        requestAnimationFrame(draw);
+    }
+    draw();
+    window.addEventListener('resize', ()=>{ W=canvas.width=canvas.offsetWidth; H=canvas.height=canvas.offsetHeight; });
+    </script>
+</body>
+</html>
