@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COSMIC — Gaming Hub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
+
+        :root {
+            --bg:          #0a0c14;
+            --sidebar-bg:  #0d0f1a;
+            --sidebar-w:   62px;
+            --accent:      #ff6b35;
+            --accent2:     #ff9a00;
+            --accent-glow: rgba(255,107,53,0.35);
+            --text:        #ffffff;
+            --text-muted:  rgba(255,255,255,0.4);
+            --border:      rgba(255,255,255,0.07);
+            --item-hover:  rgba(255,255,255,0.07);
+            --item-active: rgba(255,255,255,0.12);
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* ── CURSOR ── */
+        * { cursor: none; }
+        .cursor {
+            position: fixed; width: 10px; height: 10px;
+            background: var(--accent); border-radius: 50%;
+            pointer-events: none; z-index: 9999;
+            transform: translate(-50%,-50%);
+            mix-blend-mode: plus-lighter;
+            transition: width .12s, height .12s;
+        }
+        .cursor-ring {
+            position: fixed; width: 28px; height: 28px;
+            border: 1.5px solid var(--accent); border-radius: 50%;
+            pointer-events: none; z-index: 9998;
+            transform: translate(-50%,-50%);
+            opacity: .3;
+            transition: width .18s, height .18s, opacity .18s;
+        }
+        .cursor.big { width: 5px; height: 5px; }
+        .cursor-ring.big { width: 42px; height: 42px; opacity: .55; }
+
+        /* ── CANVAS BG ── */
+        #bgCanvas {
+            position: fixed; inset: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; z-index: 0; opacity: .5;
+        }
+
+        /* ══════════════════════════════
+           SIDEBAR  — floating bubble
+        ══════════════════════════════ */
+
+        /* Wrapper so sidebar floats inside the layout */
+        .sidebar-outer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 10px;
+            flex-shrink: 0;
+            z-index: 50;
+            position: relative;
+        }
+
+        .sidebar {
+            width: 62px;
+            background: rgba(13,15,26,0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 0 10px;
+            gap: 0;
+            box-shadow:
+                0 8px 32px rgba(0,0,0,0.55),
+                0 0 0 1px rgba(255,255,255,0.04) inset,
+                0 1px 0 rgba(255,255,255,0.08) inset;
+            position: relative;
+            height: 100%;
+            max-height: calc(100vh - 24px);
+            overflow: hidden;
+            transition: width .3s cubic-bezier(.4,0,.2,1), opacity .3s ease, padding .3s ease;
+        }
+
+        /* Accent glow orb behind the bubble */
+        .sidebar::before {
+            content: '';
+            position: absolute;
+            bottom: 20%; left: 50%;
+            transform: translateX(-50%);
+            width: 80px; height: 120px;
+            background: radial-gradient(ellipse, rgba(255,107,53,0.12) 0%, transparent 70%);
+            pointer-events: none;
+            border-radius: 50%;
+        }
+
+        /* ── Logo ── */
+        .sb-logo {
+            width: 40px; height: 40px;
+            border-radius: 13px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1em; color: #fff;
+            box-shadow: 0 4px 18px var(--accent-glow), 0 0 0 1px rgba(255,255,255,.1) inset;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+            position: relative;
+            transition: transform .2s, box-shadow .2s;
+        }
+        .sb-logo::before {
+            content: '';
+            position: absolute; inset: 0; border-radius: 13px;
+            background: linear-gradient(135deg, rgba(255,255,255,.28) 0%, transparent 55%);
+        }
+        .sb-logo:hover { transform: scale(1.06); box-shadow: 0 6px 26px var(--accent-glow); }
+
+        /* ── Divider ── */
+        .sb-divider {
+            width: 30px; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.1), transparent);
+            margin: 7px 0;
+            flex-shrink: 0;
+        }
+
+        /* ── Nav button ── */
+        .sb-btn {
+            width: 42px; height: 42px;
+            border-radius: 13px;
+            border: 1px solid transparent;
+            background: transparent;
+            color: rgba(255,255,255,.32);
+            font-size: .95em;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all .2s ease;
+            margin: 2px 0;
+            position: relative;
+            text-decoration: none;
+            flex-shrink: 0;
+        }
+
+        .sb-btn:hover {
+            background: rgba(255,255,255,.08);
+            border-color: rgba(255,255,255,.08);
+            color: rgba(255,255,255,.9);
+            transform: scale(1.08);
+        }
+
+        .sb-btn.active {
+            background: rgba(255,107,53,.16);
+            border-color: rgba(255,107,53,.28);
+            color: var(--accent);
+            box-shadow: 0 0 16px rgba(255,107,53,.14);
+        }
+
+        /* Active indicator — left pill inside the bubble */
+        .sb-btn.active::before {
+            content: '';
+            position: absolute;
+            left: 0px; top: 50%;
+            transform: translateY(-50%);
+            width: 3px; height: 18px;
+            background: linear-gradient(180deg, var(--accent2), var(--accent));
+            border-radius: 0 3px 3px 0;
+            box-shadow: 2px 0 10px var(--accent-glow);
+        }
+
+        /* Rich tooltip */
+        .sb-btn[data-tip]::after {
+            content: attr(data-tip);
+            position: absolute;
+            left: calc(100% + 18px);
+            top: 50%; transform: translateY(-50%) scale(.92);
+            background: rgba(13,15,28,0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,.1);
+            color: #fff;
+            padding: 6px 13px;
+            border-radius: 10px;
+            font-size: .72em;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            box-shadow: 0 8px 24px rgba(0,0,0,.6);
+            transition: opacity .15s, transform .15s;
+            z-index: 200;
+        }
+        .sb-btn:hover[data-tip]::after {
+            opacity: 1;
+            transform: translateY(-50%) scale(1);
+        }
+
+        /* Toggle button */
+        .sb-toggle {
+            width: 34px; height: 34px;
+            border-radius: 10px;
+            background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.07);
+            color: rgba(255,255,255,.3);
+            font-size: .75em;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all .2s;
+            margin-bottom: 7px;
+            flex-shrink: 0;
+        }
+        .sb-toggle:hover { background: rgba(255,255,255,.1); color: var(--accent); border-color: rgba(255,107,53,.25); }
+
+        /* Collapsed state */
+        .sidebar.slim {
+            width: 0;
+            padding: 0;
+            border: none;
+            overflow: hidden;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Show a small tab to re-open when collapsed */
+        .sidebar-outer.collapsed .sb-reopen {
+            display: flex;
+        }
+        .sb-reopen {
+            display: none;
+            width: 28px; height: 28px;
+            border-radius: 0 8px 8px 0;
+            background: rgba(13,15,26,0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,.09);
+            border-left: none;
+            color: rgba(255,255,255,.4);
+            font-size: .75em;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            transition: all .2s;
+            z-index: 60;
+        }
+        .sb-reopen:hover { color: var(--accent); background: rgba(20,18,35,0.95); }
+
+        .sb-spacer { flex: 1; }
+
+        /* ── MAIN ── */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Topbar */
+        .topbar {
+            height: 48px;
+            background: rgba(13,15,26,.92);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 16px;
+            flex-shrink: 0;
+            z-index: 20;
+        }
+
+        .tb-live-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+            animation: blink 2.4s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+        .tb-name {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: .75em;
+            letter-spacing: .1em;
+            color: rgba(255,255,255,.85);
+            flex: 1;
+        }
+
+        .tb-status {
+            font-size: .7em;
+            color: rgba(255,255,255,.25);
+            font-family: 'Space Grotesk', monospace;
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        .tb-actions { display: flex; gap: 6px; }
+
+        .tb-btn {
+            width: 30px; height: 30px;
+            border-radius: 7px;
+            background: rgba(255,255,255,.05);
+            border: 1px solid var(--border);
+            color: rgba(255,255,255,.35);
+            font-size: .75em;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all .18s;
+            text-decoration: none;
+        }
+        .tb-btn:hover { background: rgba(255,255,255,.1); color: var(--accent); border-color: rgba(255,107,53,.3); }
+
+        /* ── FRAME ── */
+        .frame-wrap {
+            flex: 1;
+            position: relative;
+            background: var(--bg);
+            overflow: hidden;
+        }
+
+        #mainFrame {
+            width: 100%; height: 100%;
+            border: none;
+            display: block;
+            opacity: 0;
+            transition: opacity .35s ease;
+        }
+        #mainFrame.loaded { opacity: 1; }
+
+        /* ── SPLASH ── */
+        .splash {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 24px;
+            background: var(--bg);
+            z-index: 5;
+            transition: opacity .4s, pointer-events .4s;
+        }
+        .splash.hide { opacity: 0; pointer-events: none; }
+
+        .splash-title {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 5em;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 55%, #fff 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+            filter: drop-shadow(0 0 50px rgba(255,107,53,.45));
+            animation: float 4s ease-in-out infinite;
+            line-height: 1;
+        }
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+        .splash-sub {
+            font-size: .82em; color: var(--text-muted);
+            letter-spacing: .04em;
+        }
+
+        .splash-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-width: 480px;
+            width: 100%;
+            padding: 0 20px;
+        }
+
+        .splash-card {
+            display: flex; flex-direction: column;
+            align-items: center; gap: 10px;
+            padding: 18px 12px;
+            border-radius: 13px;
+            background: rgba(255,255,255,.04);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all .2s;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 800;
+            font-size: .8em;
+            color: rgba(255,255,255,.55);
+        }
+        .splash-card i {
+            font-size: 1.4em;
+            color: var(--accent);
+        }
+        .splash-card:hover {
+            background: rgba(255,107,53,.1);
+            border-color: rgba(255,107,53,.3);
+            color: #fff;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 28px rgba(255,107,53,.12);
+        }
+
+        /* ── LOADING ── */
+        .load-overlay {
+            position: absolute; inset: 0;
+            background: var(--bg);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 16px;
+            z-index: 4;
+            opacity: 0; pointer-events: none;
+            transition: opacity .2s;
+        }
+        .load-overlay.show { opacity: 1; pointer-events: all; }
+
+        .load-spinner {
+            width: 42px; height: 42px;
+            border: 2px solid rgba(255,255,255,.07);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .load-text {
+            font-size: .75em;
+            color: rgba(255,255,255,.3);
+            font-family: 'Space Grotesk', monospace;
+            letter-spacing: .06em;
+        }
+
+        .load-bar {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px; overflow: hidden;
+            display: none;
+        }
+        .load-bar.show { display: block; }
+        .load-bar::after {
+            content: ''; position: absolute;
+            top: 0; left: -60%; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent);
+            animation: slide .7s linear infinite;
+        }
+        @keyframes slide { to { left: 120%; } }
+
+        /* scrollbar */
+        ::-webkit-scrollbar { width: 3px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
+    </style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+<canvas id="bgCanvas"></canvas>
+
+<!-- ════════ SIDEBAR ════════ -->
+<div class="sidebar-outer" id="sidebarOuter">
+<button class="sb-reopen" id="reopenBtn" title="Open sidebar"><i class="fas fa-chevron-right"></i></button>
+<div class="sidebar" id="sidebar">
+
+    <div class="sb-logo"><i class="fas fa-rocket"></i></div>
+
+    <!-- Toggle -->
+    <button class="sb-toggle" id="toggleBtn" data-tip="Toggle Sidebar">
+        <i class="fas fa-chevron-right" id="toggleIcon"></i>
+    </button>
+
+    <div class="sb-divider"></div>
+
+    <!-- Main nav -->
+    <button class="sb-btn active" data-page="home" data-tip="Home">
+        <i class="fas fa-house"></i>
+    </button>
+    <button class="sb-btn" data-page="games" data-tip="Games">
+        <i class="fas fa-gamepad"></i>
+    </button>
+    <button class="sb-btn" data-page="chat" data-tip="Chat">
+        <i class="fas fa-comments"></i>
+    </button>
+    <button class="sb-btn" data-page="code" data-tip="Code Editor">
+        <i class="fas fa-code"></i>
+    </button>
+
+    <div class="sb-divider"></div>
+    <div class="sb-spacer"></div>
+    <div class="sb-divider"></div>
+
+    <!-- Bottom nav -->
+    <button class="sb-btn" data-page="updates" data-tip="Update Log">
+        <i class="fas fa-file-lines"></i>
+    </button>
+    <button class="sb-btn" data-page="legal" data-tip="Legal">
+        <i class="fas fa-scale-balanced"></i>
+    </button>
+    <button class="sb-btn" data-page="dmca" data-tip="DMCA">
+        <i class="fas fa-copyright"></i>
+    </button>
+    <button class="sb-btn" data-page="suggest" data-tip="Suggestions">
+        <i class="fas fa-lightbulb"></i>
+    </button>
+
+</div>
+</div>
+
+<!-- ════════ MAIN ════════ -->
+<div class="main">
+
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="tb-live-dot"></div>
+        <div class="tb-name" id="tbName">HOME</div>
+        <div class="tb-status" id="tbStatus">
+            <i class="fas fa-circle-check" style="color:rgba(255,107,53,.5);font-size:.8em;"></i>
+            <span id="tbStatusText">ready</span>
+        </div>
+        <div class="tb-actions">
+            <a class="tb-btn" id="openTab" href="#" target="_blank" title="Open raw"><i class="fas fa-arrow-up-right-from-square"></i></a>
+            <button class="tb-btn" id="reloadBtn" title="Reload"><i class="fas fa-rotate-right"></i></button>
+        </div>
+    </div>
+
+    <!-- Frame area -->
+    <div class="frame-wrap">
+        <div class="load-bar" id="loadBar"></div>
+
+        <!-- Splash -->
+        <div class="splash" id="splash">
+            <div class="splash-title">COSMIC</div>
+            <div class="splash-sub">your gateway to everything — pick a destination</div>
+            <div class="splash-grid">
+                <div class="splash-card" data-page="home"><i class="fas fa-house"></i>Home</div>
+                <div class="splash-card" data-page="games"><i class="fas fa-gamepad"></i>Games</div>
+                <div class="splash-card" data-page="chat"><i class="fas fa-comments"></i>Chat</div>
+                <div class="splash-card" data-page="code"><i class="fas fa-code"></i>Code Editor</div>
+                <div class="splash-card" data-page="updates"><i class="fas fa-file-lines"></i>Update Log</div>
+                <div class="splash-card" data-page="legal"><i class="fas fa-scale-balanced"></i>Legal</div>
+            </div>
+        </div>
+
+        <!-- Loading overlay -->
+        <div class="load-overlay" id="loadOverlay">
+            <div class="load-spinner"></div>
+            <div class="load-text" id="loadText">FETCHING...</div>
+        </div>
+
+        <iframe id="mainFrame" src="about:blank" allow="fullscreen *; autoplay *; payment *"></iframe>
+    </div>
+</div>
+
+<script>
+// ════════ PAGE MAP ════════
+const PAGES = {
+    home:    { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Home2.html',           label: 'HOME' },
+    games:   { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/games.html',          label: 'GAMES' },
+    chat:    { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/chat.html',           label: 'CHAT' },
+    code:    { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Apps/Code-editor.html', label: 'CODE EDITOR' },
+    updates: { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Upadatelog.html',     label: 'UPDATE LOG' },
+    legal:   { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Legalstuff.html',     label: 'LEGAL' },
+    dmca:    { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/DMCA.html',            label: 'DMCA' },
+    suggest: { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Suggest.html',         label: 'SUGGESTIONS' },
+};
+
+let currentPage = null;
+
+const frame     = document.getElementById('mainFrame');
+const splash    = document.getElementById('splash');
+const loadOver  = document.getElementById('loadOverlay');
+const loadBar   = document.getElementById('loadBar');
+const loadText  = document.getElementById('loadText');
+const tbName    = document.getElementById('tbName');
+const tbStatus  = document.getElementById('tbStatusText');
+const openTab   = document.getElementById('openTab');
+
+async function navigate(pageKey) {
+    if (pageKey === currentPage) return;
+    currentPage = pageKey;
+
+    const page = PAGES[pageKey];
+
+    // Update UI
+    tbName.textContent = page.label;
+    openTab.href = page.url;
+    tbStatus.textContent = 'loading...';
+
+    document.querySelectorAll('.sb-btn[data-page]').forEach(b =>
+        b.classList.toggle('active', b.dataset.page === pageKey)
+    );
+
+    // Hide splash, show loader
+    splash.classList.add('hide');
+    loadOver.classList.add('show');
+    loadBar.classList.add('show');
+    frame.classList.remove('loaded');
+    loadText.textContent = `LOADING ${page.label}...`;
+
+    try {
+        // jsDelivr serves HTML as text/plain so we must blob it with text/html
+        // to force the browser to render it. No sandbox on the iframe so nested
+        // game iframes inside the page load without any restrictions.
+        const res = await fetch(page.url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        let html = await res.text();
+
+        // Inject base tag + localStorage polyfill
+        const base = page.url.substring(0, page.url.lastIndexOf('/') + 1);
+
+        // Inject localStorage polyfill BEFORE any page scripts run.
+        // Blob URLs are null-origin so localStorage throws SecurityError — this
+        // replaces it with an in-memory store so pages that rely on it don't crash.
+        const lsPolyfill = `<script>
+(function(){
+  var _store = {};
+  var _ls = {
+    getItem: function(k){ return _store.hasOwnProperty(k) ? _store[k] : null; },
+    setItem: function(k,v){ _store[k] = String(v); },
+    removeItem: function(k){ delete _store[k]; },
+    clear: function(){ _store = {}; },
+    key: function(i){ return Object.keys(_store)[i] || null; },
+    get length(){ return Object.keys(_store).length; }
+  };
+  try { localStorage.getItem('_test'); } catch(e) {
+    Object.defineProperty(window, 'localStorage', { value: _ls, writable: false });
+    Object.defineProperty(window, 'sessionStorage', { value: _ls, writable: false });
+  }
+})();
+<\/script>`;
+        html = html.replace(/<head([^>]*)>/i, `<head$1><base href="${base}">${lsPolyfill}`);
+
+        // Inject anti-inspect into every loaded page
+        const antiInspect = `<script>(function(){document.addEventListener('contextmenu',function(e){e.preventDefault();});document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&['I','J','C','K'].includes(e.key.toUpperCase()))||(e.ctrlKey&&e.key.toUpperCase()==='U')||(e.ctrlKey&&e.key.toUpperCase()==='S')){e.preventDefault();e.stopPropagation();return false;}});setInterval(function(){if((window.outerWidth-window.innerWidth)>160||(window.outerHeight-window.innerHeight)>160){document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0c14;color:rgba(255,255,255,.35);font-family:monospace;font-size:1.1em;flex-direction:column;gap:12px;"><span style="font-size:2em">\u{1F6AB}<\/span>Access denied.<\/div>';}},800);setInterval(function(){(function(){})['constructor']('debugger')();},80);})();<\/script>`;
+        html = html.replace(/<\/body>/i, antiInspect + '</body>');
+
+        const blob = new Blob([html], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+
+        frame.onload = () => {
+            loadOver.classList.remove('show');
+            loadBar.classList.remove('show');
+            frame.classList.add('loaded');
+            tbStatus.textContent = 'loaded ✓';
+            // Free memory after render
+            URL.revokeObjectURL(blobUrl);
+        };
+
+        frame.src = blobUrl;
+
+    } catch (err) {
+        loadOver.classList.remove('show');
+        loadBar.classList.remove('show');
+        tbStatus.textContent = 'error ✗';
+        const errHtml = `<html><body style="background:#0a0c14;color:rgba(255,255,255,.5);font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:14px;">
+            <div style="font-size:2.5em;color:#ff6b35;">⚠</div>
+            <div>${page.label} failed to load</div>
+            <div style="font-size:.8em;opacity:.5;">${err.message}</div>
+            <div style="font-size:.75em;opacity:.35;">Make sure the GitHub repo is public</div>
+        </body></html>`;
+        const b = new Blob([errHtml], { type: 'text/html' });
+        frame.src = URL.createObjectURL(b);
+        frame.classList.add('loaded');
+    }
+}
+
+// Sidebar nav
+document.querySelectorAll('.sb-btn[data-page]').forEach(btn => {
+    btn.addEventListener('click', () => navigate(btn.dataset.page));
+});
+
+// Splash cards
+document.querySelectorAll('.splash-card[data-page]').forEach(card => {
+    card.addEventListener('click', () => navigate(card.dataset.page));
+});
+
+// Reload
+document.getElementById('reloadBtn').addEventListener('click', () => {
+    if (!currentPage) return;
+    const p = currentPage;
+    currentPage = null;
+    navigate(p);
+});
+
+// Toggle sidebar
+const sidebar = document.getElementById('sidebar');
+const sidebarOuter = document.getElementById('sidebarOuter');
+const reopenBtn = document.getElementById('reopenBtn');
+
+document.getElementById('toggleBtn').addEventListener('click', () => {
+    sidebar.classList.add('slim');
+    sidebarOuter.classList.add('collapsed');
+});
+
+reopenBtn.addEventListener('click', () => {
+    sidebar.classList.remove('slim');
+    sidebarOuter.classList.remove('collapsed');
+});
+
+// ════════ CURSOR ════════
+const cur  = document.getElementById('cursor');
+const ring = document.getElementById('cursorRing');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove', e => {
+    mx=e.clientX; my=e.clientY;
+    cur.style.left=mx+'px'; cur.style.top=my+'px';
+});
+(function loop(){
+    rx+=(mx-rx)*.12; ry+=(my-ry)*.12;
+    ring.style.left=rx+'px'; ring.style.top=ry+'px';
+    requestAnimationFrame(loop);
+})();
+document.addEventListener('mouseover', e => {
+    if (e.target.closest('button,a,.splash-card,.sb-btn')) {
+        cur.classList.add('big'); ring.classList.add('big');
+    } else {
+        cur.classList.remove('big'); ring.classList.remove('big');
+    }
+});
+
+// ════════ CANVAS BG ════════
+const cv=document.getElementById('bgCanvas');
+const ctx=cv.getContext('2d');
+let W=cv.width=window.innerWidth, H=cv.height=window.innerHeight;
+const pts=Array.from({length:90},()=>({
+    x:Math.random()*W, y:Math.random()*H,
+    s:Math.random()*2+.3,
+    vx:(Math.random()-.5)*.22, vy:(Math.random()-.5)*.22,
+    o:Math.random()*.35+.05, td:Math.random()*.005+.002, tdir:1
+}));
+function drawBg(){
+    ctx.clearRect(0,0,W,H);
+    pts.forEach(p=>{
+        p.o+=p.td*p.tdir; if(p.o>.55||p.o<.04)p.tdir*=-1;
+        p.x+=p.vx; p.y+=p.vy;
+        if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+        if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.s,0,Math.PI*2);
+        ctx.fillStyle=`rgba(255,107,53,${p.o})`; ctx.fill();
+    });
+    requestAnimationFrame(drawBg);
+}
+drawBg();
+window.addEventListener('resize',()=>{W=cv.width=window.innerWidth;H=cv.height=window.innerHeight;});
+
+// Auto-load home
+navigate('home');
+</script>
+
+<script>
+// ── ANTI-INSPECT PROTECTION ──
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+document.addEventListener('keydown', e => {
+    if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && ['I','J','C','K'].includes(e.key.toUpperCase())) ||
+        (e.ctrlKey && e.key.toUpperCase() === 'U') ||
+        (e.ctrlKey && e.key.toUpperCase() === 'S')
+    ) { e.preventDefault(); e.stopPropagation(); return false; }
+});
+
+// Blank the page if devtools is detected open
+(function devtoolsDetect() {
+    const threshold = 160;
+    function check() {
+        if (
+            (window.outerWidth  - window.innerWidth)  > threshold ||
+            (window.outerHeight - window.innerHeight) > threshold
+        ) {
+            document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0c14;color:rgba(255,255,255,.35);font-family:monospace;font-size:1.1em;flex-direction:column;gap:12px;"><span style="font-size:2em">🚫</span>Access denied.</div>';
+        }
+    }
+    setInterval(check, 800);
+})();
+
+// Debugger trap — makes stepping through source painful
+setInterval(function() { (function(){})['constructor']('debugger')(); }, 80);
+</script>
+</body>
+</html>
