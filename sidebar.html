@@ -21,6 +21,8 @@
             --border:      rgba(255,255,255,0.07);
             --item-hover:  rgba(255,255,255,0.07);
             --item-active: rgba(255,255,255,0.12);
+            --discord:     #5865F2;
+            --discord-glow: rgba(88,101,242,0.35);
         }
 
         body {
@@ -64,7 +66,6 @@
            SIDEBAR  — floating bubble
         ══════════════════════════════ */
 
-        /* Wrapper so sidebar floats inside the layout */
         .sidebar-outer {
             display: flex;
             flex-direction: column;
@@ -99,7 +100,6 @@
             transition: width .3s cubic-bezier(.4,0,.2,1), opacity .3s ease, padding .3s ease;
         }
 
-        /* Accent glow orb behind the bubble */
         .sidebar::before {
             content: '';
             position: absolute;
@@ -171,7 +171,6 @@
             box-shadow: 0 0 16px rgba(255,107,53,.14);
         }
 
-        /* Active indicator — left pill inside the bubble */
         .sb-btn.active::before {
             content: '';
             position: absolute;
@@ -181,6 +180,18 @@
             background: linear-gradient(180deg, var(--accent2), var(--accent));
             border-radius: 0 3px 3px 0;
             box-shadow: 2px 0 10px var(--accent-glow);
+        }
+
+        /* ── Discord button special style ── */
+        .sb-btn.discord-btn {
+            color: rgba(88,101,242,.7);
+        }
+        .sb-btn.discord-btn:hover {
+            background: rgba(88,101,242,.15);
+            border-color: rgba(88,101,242,.3);
+            color: var(--discord);
+            box-shadow: 0 0 18px rgba(88,101,242,.22);
+            transform: scale(1.08);
         }
 
         /* Rich tooltip */
@@ -210,6 +221,11 @@
             transform: translateY(-50%) scale(1);
         }
 
+        /* Discord tooltip gets purple accent border */
+        .sb-btn.discord-btn[data-tip]::after {
+            border-color: rgba(88,101,242,.3);
+        }
+
         /* Toggle button */
         .sb-toggle {
             width: 34px; height: 34px;
@@ -236,7 +252,6 @@
             pointer-events: none;
         }
 
-        /* Show a small tab to re-open when collapsed */
         .sidebar-outer.collapsed .sb-reopen {
             display: flex;
         }
@@ -583,6 +598,15 @@
         <i class="fas fa-lightbulb"></i>
     </button>
 
+    <!-- Discord -->
+    <a class="sb-btn discord-btn"
+       href="https://discord.gg/WpARVms6xD"
+       target="_blank"
+       rel="noopener noreferrer"
+       data-tip="Join Discord">
+        <i class="fab fa-discord"></i>
+    </a>
+
 </div>
 </div>
 
@@ -678,19 +702,12 @@ async function navigate(pageKey) {
     loadText.textContent = `LOADING ${page.label}...`;
 
     try {
-        // jsDelivr serves HTML as text/plain so we must blob it with text/html
-        // to force the browser to render it. No sandbox on the iframe so nested
-        // game iframes inside the page load without any restrictions.
         const res = await fetch(page.url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         let html = await res.text();
 
-        // Inject base tag + localStorage polyfill
         const base = page.url.substring(0, page.url.lastIndexOf('/') + 1);
 
-        // Inject localStorage polyfill BEFORE any page scripts run.
-        // Blob URLs are null-origin so localStorage throws SecurityError — this
-        // replaces it with an in-memory store so pages that rely on it don't crash.
         const lsPolyfill = `<script>
 (function(){
   var _store = {};
@@ -718,7 +735,6 @@ async function navigate(pageKey) {
             loadBar.classList.remove('show');
             frame.classList.add('loaded');
             tbStatus.textContent = 'loaded ✓';
-            // Free memory after render
             URL.revokeObjectURL(blobUrl);
         };
 
@@ -836,7 +852,6 @@ document.addEventListener('keydown', e => {
     ) { e.preventDefault(); e.stopPropagation(); return false; }
 });
 
-// Blank the page if devtools is detected open (height-only — width varies with sidebar)
 (function devtoolsDetect() {
     function check() {
         if ((window.outerHeight - window.innerHeight) > 200) {
@@ -846,9 +861,9 @@ document.addEventListener('keydown', e => {
     setInterval(check, 800);
 })();
 
-// Debugger trap — makes stepping through source painful
 setInterval(function() { (function(){})['constructor']('debugger')(); }, 80);
 </script>
+
 <!-- ════════ PASSWORD MODAL ════════ -->
 <div class="pw-overlay" id="pwOverlay">
     <div class="pw-modal">
@@ -876,10 +891,8 @@ const pwError   = document.getElementById('pwError');
 document.getElementById('downloadBtn').addEventListener('click', () => {
     if (!currentPage) return;
     const page = PAGES[currentPage];
-    // Store current page info for after password entry
     _pendingDownloadUrl  = page.url;
     _pendingDownloadName = page.label.toLowerCase().replace(/\s+/g,'-') + '.html';
-    // Show modal
     pwInput.value = '';
     pwError.classList.remove('show');
     pwOverlay.classList.add('show');
@@ -906,7 +919,6 @@ async function attemptDownload() {
     pwError.classList.remove('show');
     pwOverlay.classList.remove('show');
 
-    // Fetch the current page HTML and trigger download
     try {
         const res = await fetch(_pendingDownloadUrl);
         if (!res.ok) throw new Error('HTTP ' + res.status);
