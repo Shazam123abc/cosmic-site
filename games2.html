@@ -1229,7 +1229,6 @@ function renderPage(page) {
     card.dataset.gamekey = key;
     card.innerHTML = `<div class="gc-thumb"><span class="gc-thumb-icon"><i class="fa-solid ${ic}"></i></span>${views>=50?'<span class="gc-hot">🔥 HOT</span>':''}</div><div class="gc-body"><div class="gc-title">${g.title}</div><div class="gc-foot"><span class="gc-play"><i class="fa-solid fa-play"></i> PLAY</span><span class="gc-views"><i class="fa-solid fa-eye"></i> <span class="gc-views-count">${fmtViews(views)}</span></span><button class="gc-download" title="Download game" type="button"><i class="fa-solid fa-download"></i></button></div></div>`;
     card.addEventListener('click', () => launchGame(g));
-    // Attach download button listener (prevent card click propagation)
     card.querySelector('.gc-download').addEventListener('click', function(e) {
       e.stopPropagation();
       downloadGame(g);
@@ -1461,22 +1460,6 @@ function dismissNotify() { clearTimeout(window._fst); const n=document.getElemen
 
 window.onbeforeunload=null;
 window.addEventListener('beforeunload',e=>{delete e['returnValue'];},true);
-
-document.addEventListener('contextmenu', e => e.preventDefault());
-document.addEventListener('keydown', e => {
-  if(e.key==='F12'){e.preventDefault();return false;}
-  if(e.ctrlKey&&e.shiftKey&&['I','i','J','j','C','c'].includes(e.key)){e.preventDefault();return false;}
-  if(e.ctrlKey&&['U','u','S','s','A','a'].includes(e.key)){e.preventDefault();return false;}
-});
-document.addEventListener('selectstart', e => e.preventDefault());
-
-(function devtoolsDetect(){
-  setInterval(()=>{
-    if(window.outerWidth-window.innerWidth>160||window.outerHeight-window.innerHeight>160){
-      document.body.innerHTML='<div style="background:#000;color:#fff;height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:18px;letter-spacing:2px">ACCESS DENIED</div>';
-    }
-  },1000);
-})();
 </script>
 </body>
 </html>
