@@ -454,6 +454,77 @@
         }
         @keyframes slide { to { left: 120%; } }
 
+        /* ── PASSWORD MODAL ── */
+        .pw-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.75);
+            backdrop-filter: blur(10px);
+            z-index: 600;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity .2s;
+        }
+        .pw-overlay.show { opacity: 1; pointer-events: all; }
+
+        .pw-modal {
+            background: linear-gradient(160deg, #13111f, #0d0b18);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 18px;
+            padding: 28px 30px 24px;
+            width: 320px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.7);
+            display: flex; flex-direction: column; gap: 16px;
+        }
+        .pw-modal h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: .8em; font-weight: 700;
+            color: var(--accent); letter-spacing: .08em;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .pw-modal p {
+            font-size: .78em; color: rgba(255,255,255,.4);
+            line-height: 1.5;
+        }
+        .pw-input {
+            width: 100%; padding: 11px 14px;
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 10px;
+            color: #fff; font-family: 'Space Grotesk', sans-serif;
+            font-size: .88em; outline: none;
+            transition: border-color .2s, box-shadow .2s;
+        }
+        .pw-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .pw-error {
+            font-size: .73em; color: #ff4d4d;
+            display: none; align-items: center; gap: 6px;
+        }
+        .pw-error.show { display: flex; }
+        .pw-actions { display: flex; gap: 8px; }
+        .pw-confirm {
+            flex: 1; padding: 10px;
+            background: var(--accent); color: #fff;
+            border: none; border-radius: 10px;
+            font-family: 'Nunito', sans-serif; font-weight: 800;
+            font-size: .85em; cursor: pointer;
+            box-shadow: 0 4px 16px var(--accent-glow);
+            transition: opacity .2s;
+        }
+        .pw-confirm:hover { opacity: .88; }
+        .pw-cancel {
+            padding: 10px 16px;
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 10px; color: rgba(255,255,255,.5);
+            font-family: 'Nunito', sans-serif; font-weight: 700;
+            font-size: .85em; cursor: pointer;
+            transition: background .2s;
+        }
+        .pw-cancel:hover { background: rgba(255,255,255,.1); }
+
         /* scrollbar */
         ::-webkit-scrollbar { width: 3px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -527,7 +598,7 @@
             <span id="tbStatusText">ready</span>
         </div>
         <div class="tb-actions">
-            <a class="tb-btn" id="openTab" href="#" target="_blank" title="Open raw"><i class="fas fa-arrow-up-right-from-square"></i></a>
+            <button class="tb-btn" id="downloadBtn" title="Download page"><i class="fas fa-download"></i></button>
             <button class="tb-btn" id="reloadBtn" title="Reload"><i class="fas fa-rotate-right"></i></button>
         </div>
     </div>
@@ -564,7 +635,7 @@
 // ════════ PAGE MAP ════════
 const PAGES = {
     home:    { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Home2.html',           label: 'HOME' },
-    games:   { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/games.html',          label: 'GAMES' },
+    games:   { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/games2.html',          label: 'GAMES' },
     chat:    { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/chat.html',           label: 'CHAT' },
     code:    { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Apps/Code-editor.html', label: 'CODE EDITOR' },
     updates: { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Upadatelog.html',     label: 'UPDATE LOG' },
@@ -582,7 +653,7 @@ const loadBar   = document.getElementById('loadBar');
 const loadText  = document.getElementById('loadText');
 const tbName    = document.getElementById('tbName');
 const tbStatus  = document.getElementById('tbStatusText');
-const openTab   = document.getElementById('openTab');
+
 
 async function navigate(pageKey) {
     if (pageKey === currentPage) return;
@@ -592,7 +663,7 @@ async function navigate(pageKey) {
 
     // Update UI
     tbName.textContent = page.label;
-    openTab.href = page.url;
+
     tbStatus.textContent = 'loading...';
 
     document.querySelectorAll('.sb-btn[data-page]').forEach(b =>
@@ -638,10 +709,6 @@ async function navigate(pageKey) {
 })();
 <\/script>`;
         html = html.replace(/<head([^>]*)>/i, `<head$1><base href="${base}">${lsPolyfill}`);
-
-        // Inject anti-inspect into every loaded page
-        const antiInspect = `<script>(function(){document.addEventListener('contextmenu',function(e){e.preventDefault();});document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&['I','J','C','K'].includes(e.key.toUpperCase()))||(e.ctrlKey&&e.key.toUpperCase()==='U')||(e.ctrlKey&&e.key.toUpperCase()==='S')){e.preventDefault();e.stopPropagation();return false;}});setInterval(function(){if((window.outerWidth-window.innerWidth)>160||(window.outerHeight-window.innerHeight)>160){document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0c14;color:rgba(255,255,255,.35);font-family:monospace;font-size:1.1em;flex-direction:column;gap:12px;"><span style="font-size:2em">\u{1F6AB}<\/span>Access denied.<\/div>';}},800);setInterval(function(){(function(){})['constructor']('debugger')();},80);})();<\/script>`;
-        html = html.replace(/<\/body>/i, antiInspect + '</body>');
 
         const blob = new Blob([html], { type: 'text/html' });
         const blobUrl = URL.createObjectURL(blob);
@@ -769,14 +836,10 @@ document.addEventListener('keydown', e => {
     ) { e.preventDefault(); e.stopPropagation(); return false; }
 });
 
-// Blank the page if devtools is detected open
+// Blank the page if devtools is detected open (height-only — width varies with sidebar)
 (function devtoolsDetect() {
-    const threshold = 160;
     function check() {
-        if (
-            (window.outerWidth  - window.innerWidth)  > threshold ||
-            (window.outerHeight - window.innerHeight) > threshold
-        ) {
+        if ((window.outerHeight - window.innerHeight) > 200) {
             document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0c14;color:rgba(255,255,255,.35);font-family:monospace;font-size:1.1em;flex-direction:column;gap:12px;"><span style="font-size:2em">🚫</span>Access denied.</div>';
         }
     }
@@ -786,5 +849,80 @@ document.addEventListener('keydown', e => {
 // Debugger trap — makes stepping through source painful
 setInterval(function() { (function(){})['constructor']('debugger')(); }, 80);
 </script>
+<!-- ════════ PASSWORD MODAL ════════ -->
+<div class="pw-overlay" id="pwOverlay">
+    <div class="pw-modal">
+        <h3><i class="fas fa-lock"></i> DOWNLOAD PASSWORD</h3>
+        <p>This file is password protected. Enter the password to download.</p>
+        <input class="pw-input" id="pwInput" type="password" placeholder="Enter password…" autocomplete="off">
+        <div class="pw-error" id="pwError"><i class="fas fa-circle-xmark"></i> Incorrect password</div>
+        <div class="pw-actions">
+            <button class="pw-cancel" id="pwCancel">Cancel</button>
+            <button class="pw-confirm" id="pwConfirm"><i class="fas fa-download"></i> &nbsp;Download</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── PASSWORD DOWNLOAD ──
+const PW = 'Turtles';
+let _pendingDownloadUrl = null;
+let _pendingDownloadName = null;
+
+const pwOverlay = document.getElementById('pwOverlay');
+const pwInput   = document.getElementById('pwInput');
+const pwError   = document.getElementById('pwError');
+
+document.getElementById('downloadBtn').addEventListener('click', () => {
+    if (!currentPage) return;
+    const page = PAGES[currentPage];
+    // Store current page info for after password entry
+    _pendingDownloadUrl  = page.url;
+    _pendingDownloadName = page.label.toLowerCase().replace(/\s+/g,'-') + '.html';
+    // Show modal
+    pwInput.value = '';
+    pwError.classList.remove('show');
+    pwOverlay.classList.add('show');
+    setTimeout(() => pwInput.focus(), 120);
+});
+
+document.getElementById('pwConfirm').addEventListener('click', attemptDownload);
+pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') attemptDownload(); });
+document.getElementById('pwCancel').addEventListener('click', closePwModal);
+pwOverlay.addEventListener('click', e => { if (e.target === pwOverlay) closePwModal(); });
+
+function closePwModal() {
+    pwOverlay.classList.remove('show');
+    _pendingDownloadUrl = null;
+}
+
+async function attemptDownload() {
+    if (pwInput.value !== PW) {
+        pwError.classList.add('show');
+        pwInput.focus();
+        pwInput.select();
+        return;
+    }
+    pwError.classList.remove('show');
+    pwOverlay.classList.remove('show');
+
+    // Fetch the current page HTML and trigger download
+    try {
+        const res = await fetch(_pendingDownloadUrl);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const html = await res.text();
+        const blob = new Blob([html], { type: 'text/html' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = _pendingDownloadName;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    } catch(err) {
+        alert('Download failed: ' + err.message);
+    }
+    _pendingDownloadUrl = null;
+}
+</script>
+
 </body>
 </html>
