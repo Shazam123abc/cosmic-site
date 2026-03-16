@@ -73,74 +73,56 @@
         }
 
         #cosmicCanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+        /* ── FILTER TOAST ── */
+        #filterToast {
+            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px);
+            z-index: 99999; pointer-events: none; opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        #filterToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast-inner {
+            background: rgba(20,4,4,0.97);
+            border: 2px solid #ff3333;
+            border-radius: 12px;
+            padding: 14px 22px;
+            display: flex; align-items: center; gap: 12px;
+            box-shadow: 0 0 30px rgba(255,50,50,0.5), 0 4px 24px rgba(0,0,0,0.7);
+            backdrop-filter: blur(16px);
+            max-width: 480px;
+        }
+        .toast-icon { font-size: 1.4em; flex-shrink: 0; }
+        .toast-message { font-family: 'Space Grotesk', sans-serif; font-size: 0.88em; color: #fff; line-height: 1.4; }
+        .toast-message strong { color: #ff6666; }
 
-        /* ── HOME BUTTON (top-right, above theme) ── */
-        #home-btn {
-            position: fixed;
-            top: 16px;
-            right: 16px;
-            z-index: 9000;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 9px 18px 9px 14px;
-            background: rgba(14,6,1,0.9);
-            border: 1.5px solid rgba(255,107,53,0.45);
-            border-radius: 50px;
-            color: var(--accent);
-            text-decoration: none;
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 0.78em;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            box-shadow: 0 0 16px var(--accent-glow);
-            transition: all 0.2s ease;
-            backdrop-filter: blur(10px);
+        /* ── FILTER BADGE (sidebar) ── */
+        .filter-badge {
+            display: flex; align-items: center; gap: 7px;
+            padding: 8px 14px; margin: 10px 16px 0;
+            background: rgba(255,50,50,0.08);
+            border: 1px solid rgba(255,50,50,0.3);
+            border-radius: 8px;
+            font-size: 0.72em; color: rgba(255,150,150,0.8);
+            font-weight: 600; letter-spacing: 0.04em;
         }
-        #home-btn:hover {
-            background: rgba(255,107,53,0.15);
-            border-color: var(--accent);
-            box-shadow: 0 0 28px var(--accent-glow);
-            transform: translateY(-2px);
-        }
-        #home-btn .btn-icon {
-            width: 24px; height: 24px;
-            background: var(--accent);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.9em; color: #fff;
-            box-shadow: 0 0 10px var(--accent-glow);
-            flex-shrink: 0;
-        }
+        .filter-dot { width: 7px; height: 7px; background: #ff4444; border-radius: 50%; box-shadow: 0 0 6px #ff4444; animation: statusPulse 2s ease-in-out infinite; flex-shrink: 0; }
 
         /* ── WELCOME MODAL ── */
         .welcome-modal {
             position: fixed; inset: 0;
-            background: rgba(0,0,0,0.92);
-            backdrop-filter: blur(14px);
-            z-index: 9999;
-            display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.92); backdrop-filter: blur(14px);
+            z-index: 9999; display: flex; align-items: center; justify-content: center;
         }
         .welcome-modal.hidden { display: none; }
-
         .welcome-content {
-            background: rgba(14,6,1,0.97);
-            border: 2px solid var(--accent);
+            background: rgba(14,6,1,0.97); border: 2px solid var(--accent);
             clip-path: polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
-            border-radius: 4px;
-            padding: 44px 40px;
-            max-width: 480px;
-            width: 90%;
+            border-radius: 4px; padding: 44px 40px; max-width: 480px; width: 90%;
             text-align: center;
             box-shadow: 0 0 50px var(--accent-glow), 0 0 100px rgba(255,107,53,0.2);
-            animation: modalIn 0.4s ease;
-            position: relative;
-            overflow: hidden;
+            animation: modalIn 0.4s ease; position: relative; overflow: hidden;
         }
         .welcome-content::before {
-            content: '';
-            position: absolute; top: 0; left: 0;
+            content: ''; position: absolute; top: 0; left: 0;
             width: 100%; height: 3px;
             background: linear-gradient(90deg,transparent,var(--accent),transparent);
             animation: energyFlow 2.5s linear infinite;
@@ -148,215 +130,63 @@
         @keyframes energyFlow { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
         @keyframes modalIn { from{opacity:0;transform:translateY(-30px) scale(0.95)} to{opacity:1;transform:none} }
 
-        .welcome-logo {
-            width: 54px; height: 54px;
-            background: var(--accent);
-            border-radius: 14px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.6em;
-            margin: 0 auto 20px;
-            box-shadow: 0 4px 28px var(--accent-glow);
-            animation: logoBob 3s ease-in-out infinite;
-        }
+        .welcome-logo { width: 54px; height: 54px; background: var(--accent); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.6em; margin: 0 auto 20px; box-shadow: 0 4px 28px var(--accent-glow); animation: logoBob 3s ease-in-out infinite; }
         @keyframes logoBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
-
-        .welcome-title {
-            font-family: 'Nunito', sans-serif;
-            font-size: 2em; font-weight: 900;
-            color: var(--accent);
-            text-transform: uppercase; letter-spacing: 4px;
-            text-shadow: 0 0 20px var(--accent-glow);
-            margin-bottom: 14px;
+        .welcome-title { font-family: 'Nunito', sans-serif; font-size: 2em; font-weight: 900; color: var(--accent); text-transform: uppercase; letter-spacing: 4px; text-shadow: 0 0 20px var(--accent-glow); margin-bottom: 14px; }
+        .welcome-text { color: rgba(255,255,255,0.6); margin-bottom: 28px; font-size: 0.95em; line-height: 1.65; }
+        .welcome-rules {
+            background: rgba(255,50,50,0.07); border: 1px solid rgba(255,50,50,0.25);
+            border-radius: 8px; padding: 12px 16px; margin-bottom: 22px; text-align: left;
+            font-size: 0.8em; color: rgba(255,200,200,0.75); line-height: 1.7;
         }
-        .welcome-text {
-            color: rgba(255,255,255,0.6);
-            margin-bottom: 28px;
-            font-size: 0.95em; line-height: 1.65;
-        }
-        .name-input {
-            width: 100%; padding: 13px 18px;
-            background: rgba(0,0,0,0.5);
-            border: 2px solid rgba(255,107,53,0.4);
-            border-radius: 10px;
-            color: #fff; font-family: 'Space Grotesk', sans-serif; font-size: 1em;
-            margin-bottom: 16px;
-            outline: none;
-            transition: all 0.2s ease;
-        }
+        .welcome-rules strong { color: #ff8888; display: block; margin-bottom: 4px; }
+        .name-input { width: 100%; padding: 13px 18px; background: rgba(0,0,0,0.5); border: 2px solid rgba(255,107,53,0.4); border-radius: 10px; color: #fff; font-family: 'Space Grotesk', sans-serif; font-size: 1em; margin-bottom: 16px; outline: none; transition: all 0.2s ease; }
         .name-input:focus { border-color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); }
         .name-input::placeholder { color: rgba(255,255,255,0.3); }
-
-        .join-btn {
-            width: 100%; padding: 14px;
-            background: var(--accent);
-            border: 2px solid var(--accent);
-            border-radius: 10px;
-            color: #fff; font-family: 'Nunito', sans-serif;
-            font-size: 1.05em; font-weight: 800; letter-spacing: 0.05em;
-            cursor: pointer;
-            box-shadow: 0 4px 24px var(--accent-glow);
-            transition: all 0.2s ease;
-        }
+        .join-btn { width: 100%; padding: 14px; background: var(--accent); border: 2px solid var(--accent); border-radius: 10px; color: #fff; font-family: 'Nunito', sans-serif; font-size: 1.05em; font-weight: 800; letter-spacing: 0.05em; cursor: pointer; box-shadow: 0 4px 24px var(--accent-glow); transition: all 0.2s ease; }
         .join-btn:hover { filter: brightness(1.12); transform: translateY(-2px); box-shadow: 0 6px 32px var(--accent-glow); }
 
         /* ── LAYOUT ── */
-        .chat-container {
-            position: relative; z-index: 1;
-            display: flex; height: 100vh;
-        }
+        .chat-container { position: relative; z-index: 1; display: flex; height: 100vh; }
 
         /* ── SIDEBAR ── */
-        .sidebar {
-            width: 260px;
-            background: rgba(10,4,0,0.97);
-            backdrop-filter: blur(20px);
-            border-right: 2px solid var(--accent);
-            display: flex; flex-direction: column;
-            box-shadow: 4px 0 28px var(--accent-glow);
-            flex-shrink: 0;
-        }
-        .sidebar-header {
-            padding: 22px 20px;
-            border-bottom: 1px solid rgba(255,107,53,0.2);
-            background: rgba(255,107,53,0.06);
-            position: relative; overflow: hidden;
-        }
-        .sidebar-header::before {
-            content: '';
-            position: absolute; bottom: 0; left: 0;
-            width: 100%; height: 2px;
-            background: linear-gradient(90deg,transparent,var(--accent),transparent);
-            animation: energyFlow 3s linear infinite;
-        }
-        .server-name {
-            font-family: 'Nunito', sans-serif;
-            font-size: 1.2em; font-weight: 900;
-            color: var(--accent);
-            text-transform: uppercase; letter-spacing: 3px;
-            text-shadow: 0 0 12px var(--accent-glow);
-            display: flex; align-items: center; gap: 10px;
-        }
-
+        .sidebar { width: 260px; background: rgba(10,4,0,0.97); backdrop-filter: blur(20px); border-right: 2px solid var(--accent); display: flex; flex-direction: column; box-shadow: 4px 0 28px var(--accent-glow); flex-shrink: 0; }
+        .sidebar-header { padding: 22px 20px; border-bottom: 1px solid rgba(255,107,53,0.2); background: rgba(255,107,53,0.06); position: relative; overflow: hidden; }
+        .sidebar-header::before { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg,transparent,var(--accent),transparent); animation: energyFlow 3s linear infinite; }
+        .server-name { font-family: 'Nunito', sans-serif; font-size: 1.2em; font-weight: 900; color: var(--accent); text-transform: uppercase; letter-spacing: 3px; text-shadow: 0 0 12px var(--accent-glow); display: flex; align-items: center; gap: 10px; }
         .channels { flex: 1; overflow-y: auto; padding: 16px; }
         .channels::-webkit-scrollbar { width: 4px; }
         .channels::-webkit-scrollbar-track { background: transparent; }
         .channels::-webkit-scrollbar-thumb { background: rgba(255,107,53,0.3); border-radius: 2px; }
-
-        .channel-category {
-            color: rgba(255,107,53,0.6);
-            font-size: 0.68em; text-transform: uppercase;
-            letter-spacing: 2px; margin: 18px 0 8px;
-            font-weight: 700;
-        }
-        .channel {
-            padding: 10px 14px; margin: 4px 0;
-            border-radius: 8px;
-            display: flex; align-items: center; gap: 10px;
-            color: rgba(255,255,255,0.45);
-            border: 1px solid transparent;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 0.9em; font-weight: 500;
-        }
-        .channel:hover {
-            background: rgba(255,107,53,0.08);
-            color: rgba(255,255,255,0.85);
-            border-color: rgba(255,107,53,0.2);
-            transform: translateX(4px);
-        }
-        .channel.active {
-            background: rgba(255,107,53,0.16);
-            color: var(--accent);
-            border-color: rgba(255,107,53,0.4);
-            box-shadow: 0 0 14px rgba(255,107,53,0.15);
-            font-weight: 700;
-        }
-
-        .user-area {
-            padding: 16px 18px;
-            border-top: 1px solid rgba(255,107,53,0.2);
-            background: rgba(0,0,0,0.5);
-            display: flex; align-items: center; gap: 12px;
-        }
-        .user-avatar {
-            width: 40px; height: 40px; border-radius: 50%;
-            background: var(--accent);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.3em;
-            box-shadow: 0 0 16px var(--accent-glow);
-            border: 2px solid rgba(255,255,255,0.2);
-            flex-shrink: 0;
-        }
+        .channel-category { color: rgba(255,107,53,0.6); font-size: 0.68em; text-transform: uppercase; letter-spacing: 2px; margin: 18px 0 8px; font-weight: 700; }
+        .channel { padding: 10px 14px; margin: 4px 0; border-radius: 8px; display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,0.45); border: 1px solid transparent; cursor: pointer; transition: all 0.2s ease; font-size: 0.9em; font-weight: 500; }
+        .channel:hover { background: rgba(255,107,53,0.08); color: rgba(255,255,255,0.85); border-color: rgba(255,107,53,0.2); transform: translateX(4px); }
+        .channel.active { background: rgba(255,107,53,0.16); color: var(--accent); border-color: rgba(255,107,53,0.4); box-shadow: 0 0 14px rgba(255,107,53,0.15); font-weight: 700; }
+        .user-area { padding: 16px 18px; border-top: 1px solid rgba(255,107,53,0.2); background: rgba(0,0,0,0.5); display: flex; align-items: center; gap: 12px; }
+        .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 1.3em; box-shadow: 0 0 16px var(--accent-glow); border: 2px solid rgba(255,255,255,0.2); flex-shrink: 0; }
         .user-info { flex: 1; min-width: 0; }
         .username { font-weight: 700; font-size: 0.9em; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .user-status { font-size: 0.74em; color: #4ade80; display: flex; align-items: center; gap: 5px; margin-top: 2px; }
         .status-dot { width: 7px; height: 7px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 6px #4ade80; animation: statusPulse 2s ease-in-out infinite; }
         @keyframes statusPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-        .settings-btn {
-            width: 34px; height: 34px;
-            background: rgba(255,107,53,0.1);
-            border: 1px solid rgba(255,107,53,0.3);
-            border-radius: 8px; color: var(--accent);
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: all 0.2s ease; font-size: 1em;
-            flex-shrink: 0;
-        }
+        .settings-btn { width: 34px; height: 34px; background: rgba(255,107,53,0.1); border: 1px solid rgba(255,107,53,0.3); border-radius: 8px; color: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; font-size: 1em; flex-shrink: 0; }
         .settings-btn:hover { background: var(--accent); color: #fff; transform: rotate(90deg); box-shadow: 0 0 14px var(--accent-glow); }
 
         /* ── MAIN CHAT ── */
         .main-chat { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-
-        .chat-header {
-            padding: 16px 22px;
-            background: rgba(10,4,0,0.97);
-            border-bottom: 2px solid var(--accent);
-            display: flex; align-items: center; justify-content: space-between;
-            box-shadow: 0 4px 24px var(--accent-glow);
-            flex-shrink: 0;
-        }
+        .chat-header { padding: 16px 22px; background: rgba(10,4,0,0.97); border-bottom: 2px solid var(--accent); display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 24px var(--accent-glow); flex-shrink: 0; }
         .channel-info { display: flex; align-items: center; gap: 14px; }
         .channel-icon { font-size: 1.3em; color: var(--accent); text-shadow: 0 0 12px var(--accent-glow); }
         .channel-name { font-family: 'Nunito', sans-serif; font-size: 1.1em; font-weight: 800; color: #fff; }
         .channel-topic { color: rgba(255,255,255,0.4); font-size: 0.8em; margin-top: 2px; }
-
         .header-buttons { display: flex; gap: 10px; align-items: center; }
-        .header-btn {
-            padding: 9px 16px;
-            background: rgba(255,107,53,0.12);
-            border: 1.5px solid rgba(255,107,53,0.35);
-            border-radius: 9px; color: var(--accent);
-            font-family: 'Space Grotesk', sans-serif; font-size: 0.82em; font-weight: 700;
-            display: flex; align-items: center; gap: 7px;
-            cursor: pointer; transition: all 0.2s ease;
-            text-transform: uppercase; letter-spacing: 0.06em;
-        }
+        .header-btn { padding: 9px 16px; background: rgba(255,107,53,0.12); border: 1.5px solid rgba(255,107,53,0.35); border-radius: 9px; color: var(--accent); font-family: 'Space Grotesk', sans-serif; font-size: 0.82em; font-weight: 700; display: flex; align-items: center; gap: 7px; cursor: pointer; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.06em; }
         .header-btn:hover { background: rgba(255,107,53,0.22); box-shadow: 0 0 18px var(--accent-glow); transform: translateY(-1px); }
-
         .theme-dropdown { position: relative; }
-        .theme-menu {
-            display: none; position: absolute;
-            top: calc(100% + 10px); right: 0;
-            background: rgba(10,4,0,0.98);
-            backdrop-filter: blur(20px);
-            border: 2px solid var(--accent);
-            clip-path: polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
-            padding: 12px;
-            min-width: 200px;
-            box-shadow: 0 8px 40px var(--accent-glow);
-            z-index: 1000;
-            max-height: 400px; overflow-y: auto;
-        }
+        .theme-menu { display: none; position: absolute; top: calc(100% + 10px); right: 0; background: rgba(10,4,0,0.98); backdrop-filter: blur(20px); border: 2px solid var(--accent); clip-path: polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px); padding: 12px; min-width: 200px; box-shadow: 0 8px 40px var(--accent-glow); z-index: 1000; max-height: 400px; overflow-y: auto; }
         .theme-menu.show { display: block; animation: dropIn 0.25s ease; }
         @keyframes dropIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:none} }
-        .theme-option {
-            padding: 10px 14px; border-radius: 7px;
-            color: rgba(255,255,255,0.7);
-            margin-bottom: 4px; cursor: pointer;
-            display: flex; align-items: center; gap: 10px;
-            font-size: 0.85em; font-weight: 600;
-            transition: all 0.15s ease;
-        }
+        .theme-option { padding: 10px 14px; border-radius: 7px; color: rgba(255,255,255,0.7); margin-bottom: 4px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 0.85em; font-weight: 600; transition: all 0.15s ease; }
         .theme-option:hover { background: rgba(255,107,53,0.15); color: var(--accent); transform: translateX(4px); }
 
         /* ── MESSAGES ── */
@@ -365,28 +195,10 @@
         .messages-area::-webkit-scrollbar-track { background: transparent; }
         .messages-area::-webkit-scrollbar-thumb { background: rgba(255,107,53,0.25); border-radius: 3px; }
         .messages-area::-webkit-scrollbar-thumb:hover { background: rgba(255,107,53,0.5); }
-
-        .message {
-            margin-bottom: 16px;
-            display: flex; gap: 14px;
-            padding: 14px 16px;
-            border-radius: 10px;
-            background: rgba(14,6,1,0.5);
-            border: 1px solid rgba(255,255,255,0.05);
-            animation: msgIn 0.3s ease;
-            transition: all 0.2s ease;
-        }
+        .message { margin-bottom: 16px; display: flex; gap: 14px; padding: 14px 16px; border-radius: 10px; background: rgba(14,6,1,0.5); border: 1px solid rgba(255,255,255,0.05); animation: msgIn 0.3s ease; transition: all 0.2s ease; }
         .message:hover { background: rgba(255,107,53,0.06); border-color: rgba(255,107,53,0.2); }
         @keyframes msgIn { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:none} }
-
-        .message-avatar {
-            width: 42px; height: 42px; border-radius: 50%;
-            background: var(--accent);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.3em; flex-shrink: 0;
-            box-shadow: 0 0 14px var(--accent-glow);
-            border: 2px solid rgba(255,255,255,0.15);
-        }
+        .message-avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 1.3em; flex-shrink: 0; box-shadow: 0 0 14px var(--accent-glow); border: 2px solid rgba(255,255,255,0.15); }
         .message-content { flex: 1; min-width: 0; }
         .message-header { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
         .message-author { font-weight: 700; font-size: 0.95em; color: var(--accent); }
@@ -394,48 +206,97 @@
         .message-text { color: rgba(255,255,255,0.82); line-height: 1.6; font-size: 0.92em; word-break: break-word; }
 
         /* ── INPUT ── */
-        .message-input-area {
-            padding: 18px 20px;
-            background: rgba(10,4,0,0.97);
-            border-top: 2px solid var(--accent);
-            box-shadow: 0 -4px 24px var(--accent-glow);
-            flex-shrink: 0;
-        }
-        .message-input-wrapper {
-            display: flex; gap: 10px;
-            background: rgba(0,0,0,0.5);
-            padding: 10px 14px;
-            border-radius: 12px;
-            border: 1.5px solid rgba(255,107,53,0.35);
-            box-shadow: 0 0 18px rgba(255,107,53,0.12);
-            transition: border-color 0.2s ease;
-        }
+        .message-input-area { padding: 18px 20px; background: rgba(10,4,0,0.97); border-top: 2px solid var(--accent); box-shadow: 0 -4px 24px var(--accent-glow); flex-shrink: 0; }
+        .message-input-wrapper { display: flex; gap: 10px; background: rgba(0,0,0,0.5); padding: 10px 14px; border-radius: 12px; border: 1.5px solid rgba(255,107,53,0.35); box-shadow: 0 0 18px rgba(255,107,53,0.12); transition: border-color 0.2s ease; }
         .message-input-wrapper:focus-within { border-color: var(--accent); box-shadow: 0 0 28px var(--accent-glow); }
-        .message-input {
-            flex: 1; padding: 10px 14px;
-            background: transparent; border: none;
-            color: #fff; font-family: 'Space Grotesk', sans-serif; font-size: 0.95em;
-            outline: none;
-        }
+        .message-input { flex: 1; padding: 10px 14px; background: transparent; border: none; color: #fff; font-family: 'Space Grotesk', sans-serif; font-size: 0.95em; outline: none; }
         .message-input::placeholder { color: rgba(255,255,255,0.3); }
-        .send-button {
-            padding: 10px 22px;
-            background: var(--accent);
-            border: none; border-radius: 9px;
-            color: #fff; font-family: 'Nunito', sans-serif;
-            font-weight: 800; font-size: 0.9em;
-            display: flex; align-items: center; gap: 7px;
-            cursor: pointer; transition: all 0.2s ease;
-            box-shadow: 0 3px 16px var(--accent-glow);
-        }
+        .send-button { padding: 10px 22px; background: var(--accent); border: none; border-radius: 9px; color: #fff; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.9em; display: flex; align-items: center; gap: 7px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 3px 16px var(--accent-glow); }
         .send-button:hover { filter: brightness(1.1); transform: translateY(-1px) scale(1.02); }
 
         @media (max-width: 768px) {
             .sidebar { position: fixed; left: -280px; top: 0; height: 100vh; z-index: 1000; transition: left 0.3s ease; }
             .sidebar.open { left: 0; }
-            #home-btn .btn-label { display: none; }
-            #home-btn { padding: 9px 12px; }
         }
+
+        /* ── MOD BUTTON ── */
+        .mod-btn { padding: 9px 16px; background: rgba(255,50,50,0.12); border: 1.5px solid rgba(255,80,80,0.45); border-radius: 9px; color: #ff7070; font-family: 'Space Grotesk', sans-serif; font-size: 0.82em; font-weight: 700; display: flex; align-items: center; gap: 7px; cursor: pointer; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.06em; }
+        .mod-btn:hover { background: rgba(255,50,50,0.25); box-shadow: 0 0 18px rgba(255,50,50,0.5); transform: translateY(-1px); }
+
+        /* ── MOD OVERLAY ── */
+        .mod-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.88); backdrop-filter: blur(16px); z-index: 10000; display: flex; align-items: center; justify-content: center; }
+        .mod-overlay.hidden { display: none; }
+
+        /* ── PASSWORD BOX ── */
+        .mod-password-box { background: rgba(12,3,3,0.98); border: 2px solid #ff4444; clip-path: polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px); padding: 44px 40px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 0 60px rgba(255,50,50,0.4), 0 0 120px rgba(255,50,50,0.15); animation: modalIn 0.3s ease; position: relative; overflow: hidden; }
+        .mod-password-box::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg,transparent,#ff4444,transparent); animation: energyFlow 2s linear infinite; }
+        .mod-lock-icon { font-size: 2.8em; margin-bottom: 16px; filter: drop-shadow(0 0 16px rgba(255,50,50,0.8)); animation: logoBob 3s ease-in-out infinite; }
+        .mod-title { font-family: 'Nunito', sans-serif; font-size: 1.6em; font-weight: 900; color: #ff4444; text-transform: uppercase; letter-spacing: 4px; text-shadow: 0 0 20px rgba(255,50,50,0.6); margin-bottom: 8px; }
+        .mod-subtitle { color: rgba(255,200,200,0.5); font-size: 0.82em; margin-bottom: 28px; }
+        .mod-pw-input { width: 100%; padding: 13px 18px; background: rgba(0,0,0,0.6); border: 2px solid rgba(255,80,80,0.35); border-radius: 10px; color: #fff; font-family: 'Space Grotesk', sans-serif; font-size: 1em; margin-bottom: 14px; outline: none; text-align: center; letter-spacing: 0.2em; transition: all 0.2s ease; }
+        .mod-pw-input:focus { border-color: #ff4444; box-shadow: 0 0 20px rgba(255,50,50,0.4); }
+        .mod-pw-input::placeholder { letter-spacing: 0.05em; color: rgba(255,255,255,0.25); }
+        .mod-pw-error { color: #ff6666; font-size: 0.8em; margin-bottom: 12px; min-height: 18px; }
+        .mod-pw-btn { width: 100%; padding: 13px; background: #ff4444; border: 2px solid #ff4444; border-radius: 10px; color: #fff; font-family: 'Nunito', sans-serif; font-size: 1em; font-weight: 800; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 24px rgba(255,50,50,0.4); }
+        .mod-pw-btn:hover { filter: brightness(1.1); transform: translateY(-2px); }
+        .mod-pw-cancel { margin-top: 12px; color: rgba(255,255,255,0.3); font-size: 0.8em; cursor: pointer; transition: color 0.2s; }
+        .mod-pw-cancel:hover { color: rgba(255,255,255,0.7); }
+
+        /* ── MOD PANEL ── */
+        .mod-panel { background: rgba(10,2,2,0.99); border: 2px solid #ff4444; clip-path: polygon(20px 0,100% 0,100% calc(100% - 20px),calc(100% - 20px) 100%,0 100%,0 20px); width: 90%; max-width: 600px; max-height: 88vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 80px rgba(255,50,50,0.35); animation: modalIn 0.3s ease; position: relative; }
+        .mod-panel::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg,transparent,#ff4444,transparent); animation: energyFlow 2.5s linear infinite; z-index: 1; }
+        .mod-panel-header { padding: 20px 24px; border-bottom: 1px solid rgba(255,80,80,0.2); background: rgba(255,50,50,0.06); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+        .mod-panel-title { font-family: 'Nunito', sans-serif; font-size: 1.1em; font-weight: 900; color: #ff6666; text-transform: uppercase; letter-spacing: 3px; display: flex; align-items: center; gap: 10px; }
+        .mod-close-btn { width: 32px; height: 32px; background: rgba(255,50,50,0.15); border: 1px solid rgba(255,80,80,0.3); border-radius: 8px; color: #ff6666; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1em; transition: all 0.2s ease; }
+        .mod-close-btn:hover { background: #ff4444; color: #fff; }
+        .mod-tabs { display: flex; border-bottom: 1px solid rgba(255,80,80,0.2); flex-shrink: 0; background: rgba(0,0,0,0.3); }
+        .mod-tab { flex: 1; padding: 12px 8px; text-align: center; font-size: 0.75em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255,150,150,0.45); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s ease; }
+        .mod-tab:hover { color: rgba(255,150,150,0.85); background: rgba(255,50,50,0.06); }
+        .mod-tab.active { color: #ff7070; border-bottom-color: #ff4444; background: rgba(255,50,50,0.08); }
+        .mod-tab-content { flex: 1; overflow-y: auto; padding: 20px 24px; }
+        .mod-tab-content::-webkit-scrollbar { width: 4px; }
+        .mod-tab-content::-webkit-scrollbar-thumb { background: rgba(255,80,80,0.3); border-radius: 2px; }
+        .mod-section { display: none; }
+        .mod-section.active { display: block; }
+        .mod-section-label { font-size: 0.7em; text-transform: uppercase; letter-spacing: 2px; color: rgba(255,120,120,0.5); font-weight: 700; margin-bottom: 12px; margin-top: 20px; }
+        .mod-section-label:first-child { margin-top: 0; }
+        .mod-input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        .mod-input { flex: 1; padding: 10px 14px; background: rgba(0,0,0,0.5); border: 1.5px solid rgba(255,80,80,0.25); border-radius: 8px; color: #fff; font-family: 'Space Grotesk', sans-serif; font-size: 0.88em; outline: none; transition: all 0.2s ease; }
+        .mod-input:focus { border-color: #ff4444; box-shadow: 0 0 12px rgba(255,50,50,0.25); }
+        .mod-input::placeholder { color: rgba(255,255,255,0.25); }
+        .mod-action-btn { padding: 10px 16px; border: none; border-radius: 8px; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.82em; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; }
+        .mod-action-btn.red { background: #ff4444; color: #fff; box-shadow: 0 2px 12px rgba(255,50,50,0.3); }
+        .mod-action-btn.red:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .mod-action-btn.orange { background: var(--accent); color: #fff; box-shadow: 0 2px 12px var(--accent-glow); }
+        .mod-action-btn.orange:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .mod-action-btn.gray { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.15); }
+        .mod-action-btn.gray:hover { background: rgba(255,255,255,0.18); color: #fff; }
+        .ban-list { display: flex; flex-direction: column; gap: 6px; }
+        .ban-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 14px; background: rgba(255,50,50,0.07); border: 1px solid rgba(255,80,80,0.2); border-radius: 8px; font-size: 0.85em; }
+        .ban-item-name { color: rgba(255,200,200,0.85); font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .ban-item-name::before { content: '🚫'; font-size: 0.9em; }
+        .unban-btn { padding: 4px 10px; background: transparent; border: 1px solid rgba(255,150,150,0.3); border-radius: 6px; color: rgba(255,150,150,0.7); font-size: 0.75em; font-weight: 700; cursor: pointer; transition: all 0.15s ease; }
+        .unban-btn:hover { background: rgba(255,150,150,0.15); color: #fff; border-color: rgba(255,150,150,0.6); }
+        .ban-empty { color: rgba(255,255,255,0.2); font-size: 0.82em; text-align: center; padding: 16px; }
+        .word-tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; margin: 3px; background: rgba(255,50,50,0.1); border: 1px solid rgba(255,80,80,0.3); border-radius: 20px; font-size: 0.78em; color: rgba(255,180,180,0.85); }
+        .word-tag-remove { cursor: pointer; color: rgba(255,100,100,0.6); font-size: 1.1em; line-height: 1; transition: color 0.15s; }
+        .word-tag-remove:hover { color: #ff4444; }
+        .word-tags-area { min-height: 40px; }
+        .danger-box { background: rgba(255,30,30,0.06); border: 1px solid rgba(255,50,50,0.25); border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; }
+        .danger-box-title { color: #ff7777; font-size: 0.8em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+        .danger-box-desc { color: rgba(255,255,255,0.35); font-size: 0.8em; margin-bottom: 12px; line-height: 1.5; }
+        .mod-textarea { width: 100%; padding: 10px 14px; background: rgba(0,0,0,0.5); border: 1.5px solid rgba(255,80,80,0.25); border-radius: 8px; color: #fff; font-family: 'Space Grotesk', sans-serif; font-size: 0.88em; outline: none; resize: vertical; min-height: 80px; transition: all 0.2s ease; margin-bottom: 10px; }
+        .mod-textarea:focus { border-color: #ff4444; box-shadow: 0 0 12px rgba(255,50,50,0.25); }
+        .mod-textarea::placeholder { color: rgba(255,255,255,0.25); }
+        .message.system-msg { background: rgba(255,107,53,0.08); border-color: rgba(255,107,53,0.3); }
+        .message.system-msg .message-author { color: #ffaa44; }
+        .message.system-msg .message-text { color: rgba(255,220,180,0.9); font-style: italic; }
+        .mod-confirm-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.82); backdrop-filter: blur(8px); z-index: 5; display: flex; align-items: center; justify-content: center; border-radius: inherit; }
+        .mod-confirm-overlay.hidden { display: none; }
+        .mod-confirm-box { background: rgba(15,3,3,0.99); border: 2px solid #ff4444; border-radius: 12px; padding: 28px 30px; text-align: center; max-width: 300px; }
+        .mod-confirm-box p { color: rgba(255,200,200,0.8); font-size: 0.88em; margin-bottom: 20px; line-height: 1.5; }
+        .mod-confirm-box strong { color: #ff6666; }
+        .mod-confirm-btns { display: flex; gap: 10px; justify-content: center; }
     </style>
 </head>
 <body>
@@ -444,11 +305,97 @@
     </div>
     <div class="grid-overlay"></div>
 
-    <!-- HOME BUTTON -->
-    <a id="home-btn" href="https://sites.google.com/egusd.net/norandompeople/home/home" target="_blank">
-        <div class="btn-icon">🏠</div>
-        <span class="btn-label">Home</span>
-    </a>
+    <!-- FILTER TOAST NOTIFICATION -->
+    <div id="filterToast">
+        <div class="toast-inner">
+            <span class="toast-icon">🚫</span>
+            <div class="toast-message" id="toastMsg"><strong>Message blocked.</strong> Your message contains content that violates our community rules.</div>
+        </div>
+    </div>
+
+    <!-- MOD PASSWORD OVERLAY -->
+    <div class="mod-overlay hidden" id="modPasswordOverlay">
+        <div class="mod-password-box">
+            <div class="mod-lock-icon">🔐</div>
+            <div class="mod-title">Mod Access</div>
+            <div class="mod-subtitle">Enter the moderator password to continue</div>
+            <input type="password" class="mod-pw-input" id="modPwInput" placeholder="Password" autocomplete="off">
+            <div class="mod-pw-error" id="modPwError"></div>
+            <button class="mod-pw-btn" onclick="checkModPassword()">🛡️ Unlock Panel</button>
+            <div class="mod-pw-cancel" onclick="closeModPassword()">✕ Cancel</div>
+        </div>
+    </div>
+
+    <!-- MOD PANEL OVERLAY -->
+    <div class="mod-overlay hidden" id="modPanelOverlay">
+        <div class="mod-panel">
+            <div class="mod-confirm-overlay hidden" id="modConfirmOverlay">
+                <div class="mod-confirm-box">
+                    <p id="modConfirmText">Are you sure?</p>
+                    <div class="mod-confirm-btns">
+                        <button class="mod-action-btn red" id="modConfirmYes">Yes, do it</button>
+                        <button class="mod-action-btn gray" onclick="hideConfirm()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            <div class="mod-panel-header">
+                <div class="mod-panel-title">🛡️ Mod Panel</div>
+                <button class="mod-close-btn" onclick="closeModPanel()">✕</button>
+            </div>
+            <div class="mod-tabs">
+                <div class="mod-tab active" onclick="switchModTab('bans',this)">🚫 Bans</div>
+                <div class="mod-tab" onclick="switchModTab('broadcast',this)">📢 Broadcast</div>
+                <div class="mod-tab" onclick="switchModTab('filter',this)">🔤 Filter</div>
+                <div class="mod-tab" onclick="switchModTab('danger',this)">⚠️ Danger</div>
+            </div>
+            <div class="mod-tab-content">
+                <div class="mod-section active" id="mod-tab-bans">
+                    <div class="mod-section-label">Ban a User</div>
+                    <div class="mod-input-row">
+                        <input type="text" class="mod-input" id="banUsernameInput" placeholder="Enter exact username...">
+                        <button class="mod-action-btn red" onclick="banUser()">🚫 Ban</button>
+                    </div>
+                    <div class="mod-section-label">Active Bans</div>
+                    <div class="ban-list" id="banList"><div class="ban-empty">No users are currently banned.</div></div>
+                </div>
+                <div class="mod-section" id="mod-tab-broadcast">
+                    <div class="mod-section-label">System Announcement</div>
+                    <p style="color:rgba(255,255,255,0.35);font-size:0.8em;margin-bottom:14px;line-height:1.5;">Send a system message to the current channel. It will appear styled differently from regular messages.</p>
+                    <textarea class="mod-textarea" id="broadcastText" placeholder="Type your announcement here..."></textarea>
+                    <div class="mod-input-row">
+                        <button class="mod-action-btn orange" style="flex:1" onclick="sendBroadcast()">📢 Send to #<span id="broadcastChannel">general</span></button>
+                    </div>
+                </div>
+                <div class="mod-section" id="mod-tab-filter">
+                    <div class="mod-section-label">Add Custom Banned Word</div>
+                    <div class="mod-input-row">
+                        <input type="text" class="mod-input" id="customWordInput" placeholder="Enter word or phrase...">
+                        <button class="mod-action-btn red" onclick="addCustomWord()">+ Add</button>
+                    </div>
+                    <div class="mod-section-label">Custom Banned Words (this session)</div>
+                    <div class="word-tags-area" id="customWordTags"><span style="color:rgba(255,255,255,0.2);font-size:0.8em;">No custom words added yet.</span></div>
+                </div>
+                <div class="mod-section" id="mod-tab-danger">
+                    <div class="mod-section-label">Danger Zone</div>
+                    <div class="danger-box">
+                        <div class="danger-box-title">🗑️ Clear Current Channel</div>
+                        <div class="danger-box-desc">Permanently deletes all messages in the current channel from Firebase. Cannot be undone.</div>
+                        <button class="mod-action-btn red" onclick="confirmAction('clearChannel')">Clear #<span class="danger-channel-name">general</span></button>
+                    </div>
+                    <div class="danger-box">
+                        <div class="danger-box-title">🗑️ Clear All Channels</div>
+                        <div class="danger-box-desc">Permanently deletes ALL messages in ALL channels. Cannot be undone.</div>
+                        <button class="mod-action-btn red" onclick="confirmAction('clearAll')">Clear Everything</button>
+                    </div>
+                    <div class="danger-box">
+                        <div class="danger-box-title">🔒 Lock Chat</div>
+                        <div class="danger-box-desc">Prevents all users from sending new messages. Click again to unlock.</div>
+                        <button class="mod-action-btn gray" id="lockChatBtn" onclick="toggleChatLock()">🔒 Lock Chat</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- WELCOME MODAL -->
     <div class="welcome-modal" id="welcomeModal">
@@ -456,6 +403,10 @@
             <div class="welcome-logo">🚀</div>
             <div class="welcome-title">Cosmic Chat</div>
             <p class="welcome-text">Join the cosmic community! Enter your username to start chatting with others in real-time.</p>
+            <div class="welcome-rules">
+                <strong>🛡️ Community Rules</strong>
+                No hate speech, slurs, sexual content, or harassment. Violations will be blocked automatically. Keep it cosmic — keep it kind.
+            </div>
             <input type="text" class="name-input" id="nameInput" placeholder="Enter your cosmic username..." maxlength="20">
             <button class="join-btn" onclick="joinChat()">🚀 Launch into Chat</button>
         </div>
@@ -466,6 +417,13 @@
             <div class="sidebar-header">
                 <div class="server-name">🚀 Cosmic Server</div>
             </div>
+
+            <!-- FILTER STATUS BADGE -->
+            <div class="filter-badge">
+                <span class="filter-dot"></span>
+                Content Filter: Active
+            </div>
+
             <div class="channels">
                 <div class="channel-category">💬 Text Channels</div>
                 <div class="channel active" onclick="switchChannel('general', event)"># general</div>
@@ -495,6 +453,7 @@
                     </div>
                 </div>
                 <div class="header-buttons">
+                    <button class="mod-btn" onclick="openModMenu()">🛡️ Mod</button>
                     <div class="theme-dropdown">
                         <button class="header-btn" onclick="toggleThemeMenu()">🎨 Theme</button>
                         <div id="themeMenu" class="theme-menu">
@@ -527,7 +486,7 @@
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getDatabase, ref, push, onChildAdded, query, limitToLast } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getDatabase, ref, push, onChildAdded, onValue, set, remove, query, limitToLast, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyCajSTlUbhe3dEkm2n5AHQfwOmkUmsCzK8",
@@ -548,6 +507,215 @@
         window.dbOnChildAdded = onChildAdded;
         window.dbQuery = query;
         window.dbLimitToLast = limitToLast;
+        window.dbOnValue = onValue;
+        window.dbSet = set;
+        window.dbRemove = remove;
+
+        // ══════════════════════════════════════════════
+        //  CONTENT FILTER
+        // ══════════════════════════════════════════════
+
+        // Normalize a string to catch leet-speak / character substitution tricks
+        // e.g. "s3x", "@ss", "f*ck", "fuuck", etc.
+        function normalize(str) {
+            return str
+                .toLowerCase()
+                // strip common zero-width / invisible characters
+                .replace(/[\u200B-\u200D\uFEFF\u00AD]/g, '')
+                // leet substitutions
+                .replace(/[@4]/g, 'a')
+                .replace(/[3]/g, 'e')
+                .replace(/[1!|]/g, 'i')
+                .replace(/[0]/g, 'o')
+                .replace(/[$5]/g, 's')
+                .replace(/[7]/g, 't')
+                .replace(/[+]/g, 't')
+                .replace(/[8]/g, 'b')
+                .replace(/[6]/g, 'g')
+                // remove repeated characters beyond 2 in a row (fuuuck → fuuck → fuk)
+                .replace(/(.)\1{2,}/g, '$1$1')
+                // remove spaces/dashes/underscores/dots between letters (f u c k → fuck)
+                .replace(/[\s\-_.*,]+/g, '')
+                // remove non-alphanumeric
+                .replace(/[^a-z0-9]/g, '');
+        }
+
+        // ── Banned pattern list ──
+        // Using RegExp patterns on the normalized string.
+        // Racial slurs, sexual terms, and hate speech triggers.
+        const BANNED_PATTERNS = [
+            // ── Racial & ethnic slurs ──
+            /\bn[i1]+g+[ae3]r?\b/,   // n-word variants
+            /\bn[i1]+gg+[ae3]?\b/,
+            /\bniglet\b/,
+            /\bcoon\b/,
+            /\bspic\b/,
+            /\bspik\b/,
+            /\bwetback\b/,
+            /\bbeaner\b/,
+            /\bchink\b/,
+            /\bgook\b/,
+            /\bjap\b/,
+            /\btowelhead\b/,
+            /\bsandnigger\b/,
+            /\bkike\b/,
+            /\bkyk\b/,
+            /\bhebrew\b/,       // only when combined with slur context — keep as standalone neutral
+            /\bcracke?r\b/,
+            /\bhonkey\b/,
+            /\bwhitetrash\b/,
+            /\bzip+er?head\b/,
+            /\bgr[ea]+ser\b/,
+            /\bporch\s*monkey\b/,
+            /\bmulatto\b/,
+            /\bsemitic\b/,      // often weaponized
+            /\btarbaby\b/,
+            /\bpaki\b/,
+            /\bwog\b/,
+            /\bgypsy\b/,
+            /\bredskin\b/,
+            /\bsquaw\b/,
+            /\binjun\b/,
+            /\bspade\b/,
+            /\bjiggaboo\b/,
+            /\bsamboo?\b/,
+            /\bwatermelon\b/,   // context-coded slur
+            /\bbutterhead\b/,
+            /\bcholo\b/,
+            /\bgorilla\b/,      // used as racial slur context
+            /\bmonkey\b/,       // used as racial slur context
+
+            // ── Sexual content ──
+            /\bfuc?k\b/,
+            /\bfucc\b/,
+            /\bfook\b/,
+            /\bsex\b/,
+            /\bporn\b/,
+            /\bpussy\b/,
+            /\bvagina\b/,
+            /\bpenis\b/,
+            /\bcock\b/,
+            /\bdick\b/,
+            /\bcum\b/,
+            /\bjerk\s*off\b/,
+            /\bjerkoff\b/,
+            /\bboobs?\b/,
+            /\bbooty\b/,
+            /\bbutt\s*hole\b/,
+            /\butthole\b/,
+            /\bass\s*hole\b/,
+            /\basshole\b/,
+            /\bass\b/,
+            /\bbitch\b/,
+            /\bwhore\b/,
+            /\bslut\b/,
+            /\bskank\b/,
+            /\bho\b/,
+            /\bwank\b/,
+            /\bhentai\b/,
+            /\bnude\b/,
+            /\bnaked\b/,
+            /\bstrip\b/,
+            /\bboobies\b/,
+            /\btits?\b/,
+            /\bbreast\b/,
+            /\banal\b/,
+            /\bbdsm\b/,
+            /\bdildo\b/,
+            /\bvibrat\b/,
+            /\bhardcore\b/,
+            /\bxxx\b/,
+            /\bonlyfans\b/,
+            /\bhorny\b/,
+            /\bsexual\b/,
+            /\braped?\b/,
+            /\bmolest\b/,
+            /\bpedoph\b/,
+            /\bpedo\b/,
+            /\bcp\b/,            // common abbreviation for CSAM
+
+            // ── General hate / violence ──
+            /\bkill\s*(your?self|urself|u)\b/,
+            /\bkys\b/,
+            /\bsuicid\b/,
+            /\bshoot\s*(up|them|you)\b/,
+            /\bbomb\b/,
+            /\bterror\b/,
+            /\bjihad\b/,
+            /\bisis\b/,
+            /\bswastika\b/,
+            /\bnadz\b/,
+            /\bnazi\b/,
+            /\bhitler\b/,
+            /\bfaggot\b/,
+            /\bfag\b/,
+            /\bdyke\b/,
+            /\bretard\b/,
+            /\bretarded\b/,
+            /\bspastic\b/,
+            /\bcripple\b/,
+
+            // ── Common bypass attempts ──
+            /f+u+c+k+/,
+            /s+h+i+t+/,
+            /\bsh[i1]t\b/,
+            /\bshit\b/,
+            /\bdamn\b/,
+            /\bhelldump\b/,
+            /\bcrap\b/,
+            /\bcunt\b/,
+            /\btwat\b/,
+        ];
+
+        // ── Unicode / Braille art detection ──
+        // Braille block: U+2800–U+28FF  (⠀ through ⣿)
+        // Also catches full-width block elements used for ASCII art: █ ▀ ▄ ░ ▒ ▓ etc.
+        function containsUnicodeArt(text) {
+            // Count Braille characters
+            const brailleChars = (text.match(/[\u2800-\u28FF]/g) || []).length;
+            // Count box-drawing / block-element characters
+            const blockChars  = (text.match(/[\u2500-\u257F\u2580-\u259F\u25A0-\u25FF]/g) || []).length;
+
+            const totalArtChars = brailleChars + blockChars;
+            const totalChars    = text.replace(/\s/g, '').length || 1;
+
+            // Block if: 10+ art characters, OR art chars make up >25% of the message
+            if (totalArtChars >= 10) return true;
+            if (totalArtChars / totalChars > 0.25) return true;
+            return false;
+        }
+
+        // ── Message length cap (prevents wall-of-text spam) ──
+        const MAX_MESSAGE_LENGTH = 400;
+
+        function containsBannedContent(text) {
+            // Length cap
+            if (text.length > MAX_MESSAGE_LENGTH) return true;
+
+            // Unicode / Braille art
+            if (containsUnicodeArt(text)) return true;
+
+            const n = normalize(text);
+            for (const pattern of BANNED_PATTERNS) {
+                if (pattern.test(n)) return true;
+            }
+            return false;
+        }
+
+        // ── Toast helper ──
+        let toastTimer = null;
+        function showToast(msg) {
+            const toast = document.getElementById('filterToast');
+            const msgEl = document.getElementById('toastMsg');
+            msgEl.innerHTML = msg;
+            toast.classList.add('show');
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove('show'), 4000);
+        }
+
+        // ══════════════════════════════════════════════
+        //  CHAT LOGIC
+        // ══════════════════════════════════════════════
 
         const emojis = ['🚀','⭐','🌟','💫','🌙','☀️','🌈','⚡','🔥','💎','🎨','🎭','🎪','🎯'];
         let currentChannel = 'general';
@@ -601,6 +769,13 @@
         window.joinChat = function() {
             const name = document.getElementById('nameInput').value.trim();
             if (!name) { alert('Please enter a username!'); return; }
+
+            // Filter username too
+            if (containsBannedContent(name)) {
+                showToast('<strong>⚠️ Username blocked.</strong> Please choose an appropriate username that follows our community rules.');
+                return;
+            }
+
             username = name;
             userEmoji = emojis[Math.floor(Math.random() * emojis.length)];
             document.getElementById('displayUsername').textContent = username;
@@ -611,13 +786,64 @@
 
         window.changeUsername = function() {
             const n = prompt('Enter new username:', username);
-            if (n && n.trim()) { username = n.trim(); document.getElementById('displayUsername').textContent = username; }
+            if (n && n.trim()) {
+                if (containsBannedContent(n.trim())) {
+                    showToast('<strong>⚠️ Username blocked.</strong> That username violates community rules. Please choose a different one.');
+                    return;
+                }
+                username = n.trim();
+                document.getElementById('displayUsername').textContent = username;
+            }
         };
 
         window.sendMessage = function() {
             const input = document.getElementById('messageInput');
             const msg = input.value.trim();
             if (!msg) return;
+
+            // ── Content filter check ──
+            if (msg.length > MAX_MESSAGE_LENGTH) {
+                showToast('<strong>🚫 Message too long.</strong> Please keep messages under 400 characters.');
+                input.style.transition = 'transform 0.1s ease';
+                input.style.transform = 'translateX(8px)';
+                setTimeout(() => { input.style.transform = 'translateX(-8px)'; }, 100);
+                setTimeout(() => { input.style.transform = 'translateX(4px)'; }, 200);
+                setTimeout(() => { input.style.transform = 'translateX(0)'; }, 300);
+                return;
+            }
+            if (containsUnicodeArt(msg)) {
+                showToast('<strong>🚫 Message blocked.</strong> Unicode/Braille art images are not allowed in chat.');
+                input.style.transition = 'transform 0.1s ease';
+                input.style.transform = 'translateX(8px)';
+                setTimeout(() => { input.style.transform = 'translateX(-8px)'; }, 100);
+                setTimeout(() => { input.style.transform = 'translateX(4px)'; }, 200);
+                setTimeout(() => { input.style.transform = 'translateX(0)'; }, 300);
+                return;
+            }
+            if (containsCustomWords(msg)) {
+                showToast('<strong>🚫 Message blocked.</strong> Your message contains content that violates our community rules. Please keep it respectful!');
+                input.style.transition = 'transform 0.1s ease';
+                input.style.transform = 'translateX(8px)';
+                setTimeout(() => { input.style.transform = 'translateX(-8px)'; }, 100);
+                setTimeout(() => { input.style.transform = 'translateX(4px)'; }, 200);
+                setTimeout(() => { input.style.transform = 'translateX(0)'; }, 300);
+                return;
+            }
+            if (chatLocked && !isMod) {
+                showToast('<strong>🔒 Chat is locked.</strong> A moderator has disabled messaging.');
+                return;
+            }
+            if (containsBannedContent(msg)) {
+                showToast('<strong>🚫 Message blocked.</strong> Your message contains content that violates our community rules. Please keep it respectful!');
+                // Shake the input
+                input.style.transition = 'transform 0.1s ease';
+                input.style.transform = 'translateX(8px)';
+                setTimeout(() => { input.style.transform = 'translateX(-8px)'; }, 100);
+                setTimeout(() => { input.style.transform = 'translateX(4px)'; }, 200);
+                setTimeout(() => { input.style.transform = 'translateX(0)'; }, 300);
+                return;
+            }
+
             window.dbPush(window.dbRef(window.db, `messages/${currentChannel}`), {
                 username, emoji: userEmoji, text: msg, timestamp: Date.now(), channel: currentChannel
             });
@@ -627,22 +853,37 @@
         function loadMessages() {
             const q = window.dbQuery(window.dbRef(window.db, `messages/${currentChannel}`), window.dbLimitToLast(50));
             document.getElementById('messagesArea').innerHTML = '';
-            window.dbOnChildAdded(q, snap => displayMessage(snap.val()));
+            window.dbOnChildAdded(q, snap => {
+                const data = snap.val();
+                // Also filter messages coming FROM the database
+                // (catches anything posted before the filter was added)
+                if (containsBannedContent(data.text) || containsBannedContent(data.username)) {
+                    // Replace with a generic placeholder instead of rendering it
+                    data.text = '[message removed — community guidelines violation]';
+                }
+                displayMessage(data);
+            });
         }
 
         function displayMessage(msg) {
+            // Hide messages from banned users
+            if (isUserBanned(msg.username)) return;
             const area = document.getElementById('messagesArea');
             const div = document.createElement('div');
-            div.className = 'message';
+            div.className = msg.isSystem ? 'message system-msg' : 'message';
             const time = new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            // Escape HTML in user-provided content to prevent XSS
+            const safeText = msg.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            const safeName = String(msg.username).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            const safeEmoji = String(msg.emoji || '🚀').replace(/</g,'&lt;');
             div.innerHTML = `
-                <div class="message-avatar">${msg.emoji}</div>
+                <div class="message-avatar">${safeEmoji}</div>
                 <div class="message-content">
                     <div class="message-header">
-                        <span class="message-author">${msg.username}</span>
+                        <span class="message-author">${safeName}</span>
                         <span class="message-time">${time}</span>
                     </div>
-                    <div class="message-text">${msg.text}</div>
+                    <div class="message-text">${safeText}</div>
                 </div>`;
             area.appendChild(div);
             area.scrollTop = area.scrollHeight;
@@ -683,6 +924,263 @@
 
         document.getElementById('messageInput').addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
         document.getElementById('nameInput').addEventListener('keypress', e => { if (e.key === 'Enter') joinChat(); });
+
+
+        // ══════════════════════════════════════════════
+        //  MOD PANEL
+        // ══════════════════════════════════════════════
+
+        // ── Change this password to whatever you want ──
+        const MOD_PASSWORD = 'CosmicMod2025';
+
+        let bannedUsers = new Set();       // username strings
+        let customBannedWords = [];        // plain strings added by mod
+        let chatLocked = false;
+        let isMod = false;
+        let pendingAction = null;
+
+        // ── Open flow ──
+        window.openModMenu = function() {
+            if (isMod) {
+                openModPanel();
+            } else {
+                document.getElementById('modPasswordOverlay').classList.remove('hidden');
+                setTimeout(() => document.getElementById('modPwInput').focus(), 50);
+            }
+        };
+
+        window.closeModPassword = function() {
+            document.getElementById('modPasswordOverlay').classList.add('hidden');
+            document.getElementById('modPwInput').value = '';
+            document.getElementById('modPwError').textContent = '';
+        };
+
+        window.checkModPassword = function() {
+            const val = document.getElementById('modPwInput').value;
+            if (val === MOD_PASSWORD) {
+                isMod = true;
+                closeModPassword();
+                openModPanel();
+            } else {
+                const err = document.getElementById('modPwError');
+                err.textContent = '✕ Incorrect password. Try again.';
+                document.getElementById('modPwInput').value = '';
+                document.getElementById('modPwInput').style.borderColor = '#ff3333';
+                setTimeout(() => { document.getElementById('modPwInput').style.borderColor = ''; }, 1500);
+            }
+        };
+        document.getElementById('modPwInput').addEventListener('keypress', e => { if (e.key === 'Enter') checkModPassword(); });
+
+        function openModPanel() {
+            document.getElementById('modPanelOverlay').classList.remove('hidden');
+            renderBanList();
+            // Sync channel name
+            const ch = document.getElementById('currentChannel').textContent;
+            const bcEl = document.getElementById('broadcastChannel');
+            if (bcEl) bcEl.textContent = ch;
+            document.querySelectorAll('.danger-channel-name').forEach(el => el.textContent = ch);
+        }
+
+        window.closeModPanel = function() {
+            document.getElementById('modPanelOverlay').classList.add('hidden');
+            hideConfirm();
+        };
+
+        // ── Tabs ──
+        window.switchModTab = function(name, el) {
+            document.querySelectorAll('.mod-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.mod-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('mod-tab-' + name).classList.add('active');
+            el.classList.add('active');
+        };
+
+        // ── Ban system ──
+        window.banUser = function() {
+            const input = document.getElementById('banUsernameInput');
+            const name = input.value.trim();
+            if (!name) return;
+            bannedUsers.add(name.toLowerCase());
+            input.value = '';
+            renderBanList();
+            showToast('<strong>🚫 User banned:</strong> ' + name + ' — their messages will be hidden.');
+        };
+
+        window.unbanUser = function(name) {
+            bannedUsers.delete(name.toLowerCase());
+            renderBanList();
+            showToast('<strong>✅ User unbanned:</strong> ' + name);
+        };
+
+        function renderBanList() {
+            const list = document.getElementById('banList');
+            if (bannedUsers.size === 0) {
+                list.innerHTML = '<div class="ban-empty">No users are currently banned.</div>';
+                return;
+            }
+            list.innerHTML = '';
+            bannedUsers.forEach(name => {
+                const item = document.createElement('div');
+                item.className = 'ban-item';
+                item.innerHTML = `<span class="ban-item-name">${name}</span><button class="unban-btn" onclick="unbanUser('${name}')">Unban</button>`;
+                list.appendChild(item);
+            });
+        }
+
+        function isUserBanned(name) {
+            return bannedUsers.has((name || '').toLowerCase());
+        }
+
+        // ── Custom word filter ──
+        window.addCustomWord = function() {
+            const input = document.getElementById('customWordInput');
+            const word = input.value.trim().toLowerCase();
+            if (!word || customBannedWords.includes(word)) { input.value = ''; return; }
+            customBannedWords.push(word);
+            input.value = '';
+            renderCustomWords();
+        };
+
+        window.removeCustomWord = function(word) {
+            customBannedWords = customBannedWords.filter(w => w !== word);
+            renderCustomWords();
+        };
+
+        function renderCustomWords() {
+            const area = document.getElementById('customWordTags');
+            if (customBannedWords.length === 0) {
+                area.innerHTML = '<span style="color:rgba(255,255,255,0.2);font-size:0.8em;">No custom words added yet.</span>';
+                return;
+            }
+            area.innerHTML = customBannedWords.map(w =>
+                `<span class="word-tag">${w}<span class="word-tag-remove" onclick="removeCustomWord('${w}')">×</span></span>`
+            ).join('');
+        }
+
+        function containsCustomWords(text) {
+            const n = normalize(text);
+            for (const word of customBannedWords) {
+                if (n.includes(normalize(word))) return true;
+            }
+            return false;
+        }
+
+        // ── Broadcast ──
+        window.sendBroadcast = function() {
+            const text = document.getElementById('broadcastText').value.trim();
+            if (!text) return;
+            window.dbPush(window.dbRef(window.db, 'messages/' + currentChannel), {
+                username: '📢 MOD ANNOUNCEMENT',
+                emoji: '📢',
+                text: text,
+                timestamp: Date.now(),
+                channel: currentChannel,
+                isSystem: true
+            });
+            document.getElementById('broadcastText').value = '';
+            showToast('<strong>📢 Broadcast sent</strong> to #' + currentChannel);
+        };
+
+        // ── Chat lock — writes to Firebase so ALL clients react ──
+        window.toggleChatLock = function() {
+            const newState = !chatLocked;
+            window.dbSet(window.dbRef(window.db, 'settings/chatLocked'), newState);
+        };
+
+        // All clients (including the mod's own browser) react here
+        function applyLockState(locked) {
+            chatLocked = locked;
+            const btn = document.getElementById('lockChatBtn');
+            const input = document.getElementById('messageInput');
+            const sendBtn = document.querySelector('.send-button');
+            if (locked) {
+                if (btn) { btn.textContent = '🔓 Unlock Chat'; btn.className = 'mod-action-btn red'; }
+                input.disabled = true;
+                input.placeholder = '🔒 Chat is locked by a moderator';
+                sendBtn.disabled = true;
+                sendBtn.style.opacity = '0.4';
+            } else {
+                if (btn) { btn.textContent = '🔒 Lock Chat'; btn.className = 'mod-action-btn gray'; }
+                input.disabled = false;
+                input.placeholder = 'Message #' + currentChannel;
+                sendBtn.disabled = false;
+                sendBtn.style.opacity = '';
+            }
+        }
+
+        // Listen to lock state in Firebase — fires for every connected client
+        window.dbOnValue(window.dbRef(window.db, 'settings/chatLocked'), snap => {
+            const locked = snap.val() === true;
+            const wasLocked = chatLocked;
+            applyLockState(locked);
+            // Only show toast if state actually changed (not on initial load)
+            if (locked !== wasLocked) {
+                if (locked) showToast('<strong>🔒 Chat locked</strong> by a moderator. Messaging is disabled.');
+                else showToast('<strong>🔓 Chat unlocked.</strong> You can send messages again.');
+            }
+        });
+
+        // ── Danger: confirm + clear ──
+        window.confirmAction = function(action) {
+            pendingAction = action;
+            const overlay = document.getElementById('modConfirmOverlay');
+            const text = document.getElementById('modConfirmText');
+            const ch = document.getElementById('currentChannel').textContent;
+            if (action === 'clearChannel') {
+                text.innerHTML = `Delete <strong>all messages</strong> in <strong>#${ch}</strong>? This cannot be undone.`;
+            } else if (action === 'clearAll') {
+                text.innerHTML = `Delete <strong>ALL messages</strong> in <strong>every channel</strong>? This cannot be undone.`;
+            }
+            overlay.classList.remove('hidden');
+            document.getElementById('modConfirmYes').onclick = executeConfirmedAction;
+        };
+
+        window.hideConfirm = function() {
+            document.getElementById('modConfirmOverlay').classList.add('hidden');
+            pendingAction = null;
+        };
+
+        async function executeConfirmedAction() {
+            hideConfirm();
+            const ch = document.getElementById('currentChannel').textContent;
+            const now = Date.now();
+            if (pendingAction === 'clearChannel') {
+                // Delete all messages in this channel from Firebase
+                await window.dbRemove(window.dbRef(window.db, 'messages/' + ch));
+                // Write a clear signal so all clients wipe their DOM for this channel
+                await window.dbSet(window.dbRef(window.db, 'settings/cleared/' + ch), now);
+                showToast('<strong>🗑️ Channel cleared:</strong> #' + ch);
+            } else if (pendingAction === 'clearAll') {
+                // Delete all messages
+                await window.dbRemove(window.dbRef(window.db, 'messages'));
+                // Write a clearAll signal
+                await window.dbSet(window.dbRef(window.db, 'settings/clearedAll'), now);
+                showToast('<strong>🗑️ All channels cleared.</strong>');
+            }
+            pendingAction = null;
+        }
+
+        // Listen for clear signals — wipes the DOM on ALL connected clients
+        const CHANNELS_LIST = ['general','random','games','movies','tech','music'];
+        CHANNELS_LIST.forEach(ch => {
+            window.dbOnValue(window.dbRef(window.db, 'settings/cleared/' + ch), snap => {
+                if (snap.val() && ch === currentChannel) {
+                    document.getElementById('messagesArea').innerHTML = '';
+                }
+            });
+        });
+        window.dbOnValue(window.dbRef(window.db, 'settings/clearedAll'), snap => {
+            if (snap.val()) {
+                document.getElementById('messagesArea').innerHTML = '';
+            }
+        });
+
+        // Close mod panel when clicking outside of it
+        document.getElementById('modPanelOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeModPanel();
+        });
+        document.getElementById('modPasswordOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeModPassword();
+        });
 
         // Load saved theme
         try {
