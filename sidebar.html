@@ -1,552 +1,584 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COSMIC — Gaming Hub</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
-    <style>
-        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COSMIC — Gaming Hub</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 
-        :root {
-            --bg:          #0a0c14;
-            --sidebar-bg:  #0d0f1a;
-            --sidebar-w:   62px;
-            --accent:      #ff6b35;
-            --accent2:     #ff9a00;
-            --accent-glow: rgba(255,107,53,0.35);
-            --text:        #ffffff;
-            --text-muted:  rgba(255,255,255,0.4);
-            --border:      rgba(255,255,255,0.07);
-            --item-hover:  rgba(255,255,255,0.07);
-            --item-active: rgba(255,255,255,0.12);
-            --discord:     #5865F2;
-            --discord-glow: rgba(88,101,242,0.35);
-        }
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-        body {
-            font-family: 'Space Grotesk', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            height: 100vh;
-            display: flex;
-            overflow: hidden;
-        }
+const firebaseConfig = {
+  apiKey: "AIzaSyCajSTlUbhe3dEkm2n5AHQfwOmkUmsCzK8",
+  authDomain: "cosmiceditionchat.firebaseapp.com",
+  databaseURL: "https://cosmiceditionchat-default-rtdb.firebaseio.com",
+  projectId: "cosmiceditionchat",
+  storageBucket: "cosmiceditionchat.firebasestorage.app",
+  messagingSenderId: "307679721622",
+  appId: "1:307679721622:web:56a567006eec9b17806ab7"
+};
 
-        /* ── CURSOR ── */
-        * { cursor: none; }
-        .cursor {
-            position: fixed; width: 10px; height: 10px;
-            background: var(--accent); border-radius: 50%;
-            pointer-events: none; z-index: 9999;
-            transform: translate(-50%,-50%);
-            mix-blend-mode: plus-lighter;
-            transition: width .12s, height .12s;
-        }
-        .cursor-ring {
-            position: fixed; width: 28px; height: 28px;
-            border: 1.5px solid var(--accent); border-radius: 50%;
-            pointer-events: none; z-index: 9998;
-            transform: translate(-50%,-50%);
-            opacity: .3;
-            transition: width .18s, height .18s, opacity .18s;
-        }
-        .cursor.big { width: 5px; height: 5px; }
-        .cursor-ring.big { width: 42px; height: 42px; opacity: .55; }
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+const adminRef = ref(db, 'cosmic-admin');
 
-        /* ── CANVAS BG ── */
-        #bgCanvas {
-            position: fixed; inset: 0;
-            width: 100%; height: 100%;
-            pointer-events: none; z-index: 0; opacity: .5;
-        }
+// ── Expose write helpers globally ──
+window._fbSet = (path, val) => set(ref(db, 'cosmic-admin/' + path), val);
+window._fbUpdate = (obj) => update(adminRef, obj);
 
-        /* ══════════════════════════════
-           SIDEBAR  — floating bubble
-        ══════════════════════════════ */
+// ── Listen for ALL admin changes and apply to UI ──
+onValue(adminRef, (snap) => {
+  const data = snap.val();
+  if (!data) return;
 
-        .sidebar-outer {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 12px 10px;
-            flex-shrink: 0;
-            z-index: 50;
-            position: relative;
-        }
+  // Notification banner
+  const banner  = document.getElementById('notifBanner');
+  const notifTx = document.getElementById('notifText');
+  const notifIn = document.getElementById('notifInput');
+  if (banner && notifTx) {
+    if (data.notification?.visible && data.notification?.text) {
+      notifTx.textContent = data.notification.text;
+      banner.classList.add('show');
+      if (notifIn) notifIn.value = data.notification.text;
+    } else {
+      banner.classList.remove('show');
+      if (notifIn) notifIn.value = '';
+    }
+  }
 
-        .sidebar {
-            width: 62px;
-            background: rgba(13,15,26,0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.09);
-            border-radius: 24px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 12px 0 10px;
-            gap: 0;
-            box-shadow:
-                0 8px 32px rgba(0,0,0,0.55),
-                0 0 0 1px rgba(255,255,255,0.04) inset,
-                0 1px 0 rgba(255,255,255,0.08) inset;
-            position: relative;
-            height: 100%;
-            max-height: calc(100vh - 24px);
-            overflow: hidden;
-            transition: width .3s cubic-bezier(.4,0,.2,1), opacity .3s ease, padding .3s ease;
-        }
+  // Page visibility
+  if (data.pages) {
+    Object.entries(data.pages).forEach(([key, visible]) => {
+      const btn = document.querySelector(`.sb-btn[data-page="${key}"]`);
+      const visIcon = document.querySelector(`.admin-page-vis[data-key="${key}"] i`);
+      if (btn) btn.style.display = visible ? '' : 'none';
+      if (visIcon) {
+        visIcon.className = visible
+          ? 'fas fa-eye'
+          : 'fas fa-eye-slash';
+        visIcon.style.color = visible ? '' : 'rgba(248,113,113,.6)';
+      }
+    });
+  }
 
-        .sidebar::before {
-            content: '';
-            position: absolute;
-            bottom: 20%; left: 50%;
-            transform: translateX(-50%);
-            width: 80px; height: 120px;
-            background: radial-gradient(ellipse, rgba(255,107,53,0.12) 0%, transparent 70%);
-            pointer-events: none;
-            border-radius: 50%;
-        }
+  // Appearance
+  if (data.appearance) {
+    const a = data.appearance;
+    if (a.accent) {
+      document.documentElement.style.setProperty('--accent', a.accent);
+      const inp = document.getElementById('colorAccent');
+      const val = document.getElementById('accentVal');
+      if (inp) inp.value = a.accent;
+      if (val) val.textContent = a.accent;
+      const swatch = inp?.closest('.color-swatch');
+      if (swatch) swatch.style.background = a.accent;
+    }
+    if (typeof a.particles !== 'undefined') {
+      window._particlesEnabled = a.particles;
+      const chk = document.getElementById('toggleParticles');
+      if (chk) chk.checked = a.particles;
+      if (!a.particles) {
+        const cv = document.getElementById('bgCanvas');
+        if (cv) cv.getContext('2d').clearRect(0,0,cv.width,cv.height);
+      }
+    }
+    if (typeof a.cursor !== 'undefined') {
+      const cur  = document.getElementById('cursor');
+      const ring = document.getElementById('cursorRing');
+      window._cursorEnabled = a.cursor;
+      const chk = document.getElementById('toggleCursor');
+      if (chk) chk.checked = a.cursor;
+      if (cur)  cur.style.display  = a.cursor ? '' : 'none';
+      if (ring) ring.style.display = a.cursor ? '' : 'none';
+      document.body.style.cursor = a.cursor ? 'none' : 'auto';
+    }
+    if (typeof a.orbs !== 'undefined') {
+      document.querySelectorAll('.orb').forEach(o => o.style.display = a.orbs ? '' : 'none');
+      const chk = document.getElementById('toggleOrbs');
+      if (chk) chk.checked = a.orbs;
+    }
+  }
+});
 
-        /* ── Logo ── */
-        .sb-logo {
-            width: 40px; height: 40px;
-            border-radius: 13px;
-            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
-            display: flex; align-items: center; justify-content: center;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1em; color: #fff;
-            box-shadow: 0 4px 18px var(--accent-glow), 0 0 0 1px rgba(255,255,255,.1) inset;
-            margin-bottom: 10px;
-            flex-shrink: 0;
-            position: relative;
-            transition: transform .2s, box-shadow .2s;
-        }
-        .sb-logo::before {
-            content: '';
-            position: absolute; inset: 0; border-radius: 13px;
-            background: linear-gradient(135deg, rgba(255,255,255,.28) 0%, transparent 55%);
-        }
-        .sb-logo:hover { transform: scale(1.06); box-shadow: 0 6px 26px var(--accent-glow); }
+window._fbReady = true;
+document.dispatchEvent(new Event('fb-ready'));
+</script>
 
-        /* ── Divider ── */
-        .sb-divider {
-            width: 30px; height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,.1), transparent);
-            margin: 7px 0;
-            flex-shrink: 0;
-        }
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 
-        /* ── Nav button ── */
-        .sb-btn {
-            width: 42px; height: 42px;
-            border-radius: 13px;
-            border: 1px solid transparent;
-            background: transparent;
-            color: rgba(255,255,255,.32);
-            font-size: .95em;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-            transition: all .2s ease;
-            margin: 2px 0;
-            position: relative;
-            text-decoration: none;
-            flex-shrink: 0;
-        }
+:root{
+  --bg:#080a12;
+  --surface:#0e1020;
+  --surface2:#121626;
+  --accent:#ff6b35;
+  --accent2:#ff9a00;
+  --accent3:#ff3d7f;
+  --glow:rgba(255,107,53,0.4);
+  --glow2:rgba(255,154,0,0.25);
+  --text:#f0f0f8;
+  --text-muted:rgba(240,240,248,0.38);
+  --border:rgba(255,255,255,0.06);
+  --border-accent:rgba(255,107,53,0.22);
+  --discord:#5865F2;
+  --admin:#a78bfa;
+  --admin-glow:rgba(167,139,250,0.35);
+  --sidebar-w:64px;
+  --radius:16px;
+}
 
-        .sb-btn:hover {
-            background: rgba(255,255,255,.08);
-            border-color: rgba(255,255,255,.08);
-            color: rgba(255,255,255,.9);
-            transform: scale(1.08);
-        }
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;overflow:hidden;cursor:none;}
 
-        .sb-btn.active {
-            background: rgba(255,107,53,.16);
-            border-color: rgba(255,107,53,.28);
-            color: var(--accent);
-            box-shadow: 0 0 16px rgba(255,107,53,.14);
-        }
+/* ── CURSOR ── */
+.cursor{position:fixed;width:8px;height:8px;background:var(--accent);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:plus-lighter;transition:width .1s,height .1s,background .2s;}
+.cursor-ring{position:fixed;width:30px;height:30px;border:1.5px solid var(--accent);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);opacity:.25;transition:width .18s,height .18s,opacity .18s;}
+.cursor.big{width:4px;height:4px;}
+.cursor-ring.big{width:44px;height:44px;opacity:.5;}
+.cursor.admin-mode{background:var(--admin);}
+.cursor-ring.admin-mode{border-color:var(--admin);}
 
-        .sb-btn.active::before {
-            content: '';
-            position: absolute;
-            left: 0px; top: 50%;
-            transform: translateY(-50%);
-            width: 3px; height: 18px;
-            background: linear-gradient(180deg, var(--accent2), var(--accent));
-            border-radius: 0 3px 3px 0;
-            box-shadow: 2px 0 10px var(--accent-glow);
-        }
+/* ── BG CANVAS ── */
+#bgCanvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.6;}
 
-        /* ── Discord button special style ── */
-        .sb-btn.discord-btn {
-            color: rgba(88,101,242,.7);
-        }
-        .sb-btn.discord-btn:hover {
-            background: rgba(88,101,242,.15);
-            border-color: rgba(88,101,242,.3);
-            color: var(--discord);
-            box-shadow: 0 0 18px rgba(88,101,242,.22);
-            transform: scale(1.08);
-        }
+/* ── GLOW ORBS ── */
+.orb{position:fixed;border-radius:50%;pointer-events:none;z-index:0;filter:blur(90px);animation:orbFloat 12s ease-in-out infinite;}
+.orb1{width:500px;height:500px;background:radial-gradient(circle,rgba(255,107,53,0.07) 0%,transparent 70%);top:-120px;left:-100px;animation-delay:0s;}
+.orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(88,101,242,0.06) 0%,transparent 70%);bottom:-80px;right:20%;animation-delay:-5s;}
+.orb3{width:300px;height:300px;background:radial-gradient(circle,rgba(255,61,127,0.05) 0%,transparent 70%);top:40%;right:-60px;animation-delay:-9s;}
+@keyframes orbFloat{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(20px,-15px) scale(1.05);}66%{transform:translate(-10px,20px) scale(.95);}}
 
-        /* Rich tooltip */
-        .sb-btn[data-tip]::after {
-            content: attr(data-tip);
-            position: absolute;
-            left: calc(100% + 18px);
-            top: 50%; transform: translateY(-50%) scale(.92);
-            background: rgba(13,15,28,0.95);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,.1);
-            color: #fff;
-            padding: 6px 13px;
-            border-radius: 10px;
-            font-size: .72em;
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 600;
-            white-space: nowrap;
-            pointer-events: none;
-            opacity: 0;
-            box-shadow: 0 8px 24px rgba(0,0,0,.6);
-            transition: opacity .15s, transform .15s;
-            z-index: 200;
-        }
-        .sb-btn:hover[data-tip]::after {
-            opacity: 1;
-            transform: translateY(-50%) scale(1);
-        }
+/* ══════════════════════
+   SIDEBAR
+══════════════════════ */
+.sidebar-outer{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;flex-shrink:0;z-index:50;position:relative;}
+.sidebar{
+  width:var(--sidebar-w);
+  background:rgba(14,16,32,0.82);
+  backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
+  border:1px solid var(--border);
+  border-radius:22px;
+  display:flex;flex-direction:column;align-items:center;
+  padding:12px 0 10px;
+  gap:0;
+  box-shadow:0 8px 40px rgba(0,0,0,0.65),0 0 0 1px rgba(255,255,255,0.03) inset,inset 0 1px 0 rgba(255,255,255,0.06);
+  position:relative;
+  height:100%;max-height:calc(100vh - 24px);
+  overflow:hidden;
+  transition:width .3s cubic-bezier(.4,0,.2,1),opacity .3s,padding .3s;
+}
+.sidebar::after{
+  content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:40px;height:200px;
+  background:linear-gradient(0deg,rgba(255,107,53,0.06),transparent);
+  border-radius:50%;pointer-events:none;
+}
 
-        /* Discord tooltip gets purple accent border */
-        .sb-btn.discord-btn[data-tip]::after {
-            border-color: rgba(88,101,242,.3);
-        }
+.sb-logo{
+  width:40px;height:40px;border-radius:14px;
+  background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Orbitron',sans-serif;font-size:.9em;color:#fff;
+  box-shadow:0 4px 20px var(--glow),inset 0 1px 0 rgba(255,255,255,.2);
+  margin-bottom:8px;flex-shrink:0;position:relative;
+  transition:transform .25s,box-shadow .25s;cursor:pointer;
+}
+.sb-logo::before{content:'';position:absolute;inset:0;border-radius:14px;background:linear-gradient(135deg,rgba(255,255,255,.22) 0%,transparent 55%);}
+.sb-logo:hover{transform:scale(1.07) rotate(-3deg);box-shadow:0 6px 28px var(--glow);}
+.sb-logo.logo-clicked{animation:logoBounce .3s cubic-bezier(.36,.07,.19,.97);}
+@keyframes logoBounce{0%,100%{transform:scale(1);}30%{transform:scale(1.2);}60%{transform:scale(.95);}}
+.logo-click-counter{
+  position:absolute;top:-5px;right:-5px;
+  width:16px;height:16px;border-radius:50%;
+  background:var(--admin);font-size:.6em;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .2s;color:#fff;
+  box-shadow:0 0 8px var(--admin-glow);
+}
+.logo-click-counter.show{opacity:1;}
 
-        /* Toggle button */
-        .sb-toggle {
-            width: 34px; height: 34px;
-            border-radius: 10px;
-            background: rgba(255,255,255,.05);
-            border: 1px solid rgba(255,255,255,.07);
-            color: rgba(255,255,255,.3);
-            font-size: .75em;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-            transition: all .2s;
-            margin-bottom: 7px;
-            flex-shrink: 0;
-        }
-        .sb-toggle:hover { background: rgba(255,255,255,.1); color: var(--accent); border-color: rgba(255,107,53,.25); }
+.sb-divider{width:28px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.09),transparent);margin:6px 0;flex-shrink:0;}
 
-        /* Collapsed state */
-        .sidebar.slim {
-            width: 0;
-            padding: 0;
-            border: none;
-            overflow: hidden;
-            opacity: 0;
-            pointer-events: none;
-        }
+.sb-btn{
+  width:42px;height:42px;border-radius:13px;border:1px solid transparent;
+  background:transparent;color:var(--text-muted);font-size:.92em;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .2s ease;margin:2px 0;
+  position:relative;text-decoration:none;flex-shrink:0;
+}
+.sb-btn:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.07);color:rgba(255,255,255,.88);transform:scale(1.07);}
+.sb-btn.active{background:rgba(255,107,53,.14);border-color:rgba(255,107,53,.26);color:var(--accent);box-shadow:0 0 18px rgba(255,107,53,.12);}
+.sb-btn.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:20px;background:linear-gradient(180deg,var(--accent2),var(--accent));border-radius:0 3px 3px 0;box-shadow:2px 0 12px var(--glow);}
 
-        .sidebar-outer.collapsed .sb-reopen {
-            display: flex;
-        }
-        .sb-reopen {
-            display: none;
-            width: 28px; height: 28px;
-            border-radius: 0 8px 8px 0;
-            background: rgba(13,15,26,0.85);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,.09);
-            border-left: none;
-            color: rgba(255,255,255,.4);
-            font-size: .75em;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            transition: all .2s;
-            z-index: 60;
-        }
-        .sb-reopen:hover { color: var(--accent); background: rgba(20,18,35,0.95); }
+.sb-btn.discord-btn{color:rgba(88,101,242,.65);}
+.sb-btn.discord-btn:hover{background:rgba(88,101,242,.12);border-color:rgba(88,101,242,.28);color:var(--discord);box-shadow:0 0 18px rgba(88,101,242,.18);}
 
-        .sb-spacer { flex: 1; }
+.sb-btn.admin-btn{color:rgba(167,139,250,.55);}
+.sb-btn.admin-btn:hover{background:rgba(167,139,250,.12);border-color:rgba(167,139,250,.3);color:var(--admin);box-shadow:0 0 18px var(--admin-glow);}
+.sb-btn.admin-btn.admin-active{background:rgba(167,139,250,.16);border-color:rgba(167,139,250,.35);color:var(--admin);box-shadow:0 0 20px var(--admin-glow);animation:adminPulse 2s ease-in-out infinite;}
+@keyframes adminPulse{0%,100%{box-shadow:0 0 20px var(--admin-glow);}50%{box-shadow:0 0 32px var(--admin-glow),0 0 60px rgba(167,139,250,.15);}}
 
-        /* ── MAIN ── */
-        .main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            position: relative;
-            z-index: 1;
-        }
+.sb-btn[data-tip]::after{
+  content:attr(data-tip);
+  position:absolute;left:calc(100% + 16px);top:50%;transform:translateY(-50%) scale(.9);
+  background:rgba(12,14,28,0.96);backdrop-filter:blur(14px);
+  border:1px solid var(--border);color:var(--text);
+  padding:6px 12px;border-radius:9px;
+  font-size:.7em;font-family:'Syne',sans-serif;font-weight:600;
+  white-space:nowrap;pointer-events:none;opacity:0;
+  box-shadow:0 8px 24px rgba(0,0,0,.55);
+  transition:opacity .15s,transform .15s;z-index:200;
+}
+.sb-btn:hover[data-tip]::after{opacity:1;transform:translateY(-50%) scale(1);}
+.sb-btn.discord-btn[data-tip]::after{border-color:rgba(88,101,242,.3);}
+.sb-btn.admin-btn[data-tip]::after{border-color:rgba(167,139,250,.3);}
 
-        /* Topbar */
-        .topbar {
-            height: 48px;
-            background: rgba(13,15,26,.92);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 0 16px;
-            flex-shrink: 0;
-            z-index: 20;
-        }
+.sb-toggle{
+  width:34px;height:34px;border-radius:10px;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  color:var(--text-muted);font-size:.72em;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .2s;margin-bottom:6px;flex-shrink:0;
+}
+.sb-toggle:hover{background:rgba(255,255,255,.09);color:var(--accent);border-color:var(--border-accent);}
 
-        .tb-live-dot {
-            width: 6px; height: 6px; border-radius: 50%;
-            background: var(--accent);
-            box-shadow: 0 0 8px var(--accent);
-            animation: blink 2.4s ease-in-out infinite;
-            flex-shrink: 0;
-        }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+.sidebar.slim{width:0;padding:0;border:none;overflow:hidden;opacity:0;pointer-events:none;}
+.sidebar-outer.collapsed .sb-reopen{display:flex;}
+.sb-reopen{
+  display:none;width:26px;height:26px;border-radius:0 8px 8px 0;
+  background:rgba(14,16,32,0.85);backdrop-filter:blur(20px);
+  border:1px solid var(--border);border-left:none;
+  color:var(--text-muted);font-size:.72em;align-items:center;justify-content:center;
+  cursor:pointer;position:absolute;left:8px;top:50%;transform:translateY(-50%);
+  transition:all .2s;z-index:60;
+}
+.sb-reopen:hover{color:var(--accent);}
+.sb-spacer{flex:1;}
 
-        .tb-name {
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 700;
-            font-size: .75em;
-            letter-spacing: .1em;
-            color: rgba(255,255,255,.85);
-            flex: 1;
-        }
+/* ══════════════
+   MAIN
+══════════════ */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;z-index:1;}
 
-        .tb-status {
-            font-size: .7em;
-            color: rgba(255,255,255,.25);
-            font-family: 'Space Grotesk', monospace;
-            display: flex; align-items: center; gap: 6px;
-        }
+.topbar{
+  height:50px;
+  background:rgba(10,12,24,0.90);
+  backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;padding:0 18px;
+  flex-shrink:0;z-index:20;
+}
+.tb-live{display:flex;align-items:center;gap:7px;flex-shrink:0;}
+.tb-live-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:blink 2.4s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
 
-        .tb-actions { display: flex; gap: 6px; }
+.tb-name{font-family:'Orbitron',sans-serif;font-weight:700;font-size:.72em;letter-spacing:.12em;color:rgba(255,255,255,.82);flex:1;}
+.tb-status{
+  font-size:.67em;color:var(--text-muted);font-family:'DM Mono',monospace;
+  display:flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.03);border:1px solid var(--border);
+  padding:4px 10px;border-radius:8px;
+}
+.tb-status.ok .status-dot{background:#4ade80;box-shadow:0 0 6px rgba(74,222,128,.6);}
+.tb-status.loading .status-dot{background:var(--accent);box-shadow:0 0 6px var(--glow);}
+.tb-status.error .status-dot{background:#f87171;box-shadow:0 0 6px rgba(248,113,113,.6);}
+.status-dot{width:5px;height:5px;border-radius:50%;transition:background .3s,box-shadow .3s;}
 
-        .tb-btn {
-            width: 30px; height: 30px;
-            border-radius: 7px;
-            background: rgba(255,255,255,.05);
-            border: 1px solid var(--border);
-            color: rgba(255,255,255,.35);
-            font-size: .75em;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-            transition: all .18s;
-            text-decoration: none;
-        }
-        .tb-btn:hover { background: rgba(255,255,255,.1); color: var(--accent); border-color: rgba(255,107,53,.3); }
+/* Firebase sync indicator */
+.tb-sync{
+  font-size:.62em;color:var(--text-muted);font-family:'DM Mono',monospace;
+  display:flex;align-items:center;gap:5px;
+  background:rgba(255,255,255,.02);border:1px solid var(--border);
+  padding:3px 9px;border-radius:7px;
+}
+.sync-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.2);transition:background .3s,box-shadow .3s;}
+.tb-sync.synced .sync-dot{background:#4ade80;box-shadow:0 0 5px rgba(74,222,128,.5);}
+.tb-sync.syncing .sync-dot{background:var(--admin);box-shadow:0 0 5px var(--admin-glow);animation:syncPulse .6s ease-in-out infinite;}
+@keyframes syncPulse{0%,100%{opacity:1;}50%{opacity:.3;}}
 
-        /* ── FRAME ── */
-        .frame-wrap {
-            flex: 1;
-            position: relative;
-            background: var(--bg);
-            overflow: hidden;
-        }
+.tb-actions{display:flex;gap:5px;}
+.tb-btn{
+  width:32px;height:32px;border-radius:8px;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  color:var(--text-muted);font-size:.73em;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .18s;text-decoration:none;
+}
+.tb-btn:hover{background:rgba(255,255,255,.09);color:var(--accent);border-color:var(--border-accent);}
+.tb-btn.admin-tb{color:rgba(167,139,250,.5);}
+.tb-btn.admin-tb:hover{color:var(--admin);border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.08);}
 
-        #mainFrame {
-            width: 100%; height: 100%;
-            border: none;
-            display: block;
-            opacity: 0;
-            transition: opacity .35s ease;
-        }
-        #mainFrame.loaded { opacity: 1; }
+.notif-banner{
+  background:linear-gradient(90deg,rgba(167,139,250,.12),rgba(167,139,250,.06));
+  border-bottom:1px solid rgba(167,139,250,.15);
+  padding:8px 18px;font-size:.74em;color:rgba(167,139,250,.9);
+  display:none;align-items:center;gap:10px;flex-shrink:0;
+  font-family:'DM Mono',monospace;
+}
+.notif-banner.show{display:flex;}
+.notif-banner i{font-size:.9em;color:var(--admin);}
+.notif-close{margin-left:auto;cursor:pointer;opacity:.5;transition:opacity .2s;font-size:1em;}
+.notif-close:hover{opacity:1;}
 
-        /* ── SPLASH ── */
-        .splash {
-            position: absolute; inset: 0;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            gap: 24px;
-            background: var(--bg);
-            z-index: 5;
-            transition: opacity .4s, pointer-events .4s;
-        }
-        .splash.hide { opacity: 0; pointer-events: none; }
+.frame-wrap{flex:1;position:relative;background:var(--bg);overflow:hidden;}
+#mainFrame{width:100%;height:100%;border:none;display:block;opacity:0;transition:opacity .4s ease;}
+#mainFrame.loaded{opacity:1;}
 
-        .splash-title {
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 900;
-            font-size: 5em;
-            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 55%, #fff 100%);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-            filter: drop-shadow(0 0 50px rgba(255,107,53,.45));
-            animation: float 4s ease-in-out infinite;
-            line-height: 1;
-        }
-        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+/* ── SPLASH ── */
+.splash{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:28px;background:var(--bg);z-index:5;
+  transition:opacity .4s,pointer-events .4s;
+}
+.splash.hide{opacity:0;pointer-events:none;}
+.splash-eyebrow{
+  font-family:'DM Mono',monospace;font-size:.65em;letter-spacing:.25em;
+  color:var(--text-muted);text-transform:uppercase;
+  display:flex;align-items:center;gap:10px;
+}
+.splash-eyebrow::before,.splash-eyebrow::after{content:'';flex:1;height:1px;}
+.splash-eyebrow::before{background:linear-gradient(90deg,transparent,rgba(255,255,255,.08));}
+.splash-eyebrow::after{background:linear-gradient(90deg,rgba(255,255,255,.08),transparent);}
+.splash-title{
+  font-family:'Orbitron',sans-serif;font-weight:900;font-size:6.5em;
+  background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 45%,#fff 85%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 60px rgba(255,107,53,.5));
+  animation:float 5s ease-in-out infinite;line-height:.9;letter-spacing:-.02em;
+}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.splash-sub{font-size:.8em;color:var(--text-muted);letter-spacing:.06em;font-family:'DM Mono',monospace;}
+.splash-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+  max-width:500px;width:100%;padding:0 20px;
+}
+.splash-card{
+  display:flex;flex-direction:column;align-items:center;gap:11px;
+  padding:20px 14px;border-radius:14px;
+  background:rgba(255,255,255,.03);border:1px solid var(--border);
+  cursor:pointer;transition:all .22s;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:.78em;color:var(--text-muted);
+  position:relative;overflow:hidden;
+}
+.splash-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,107,53,.06),transparent);opacity:0;transition:opacity .22s;}
+.splash-card i{font-size:1.5em;color:var(--accent);transition:transform .22s;}
+.splash-card:hover{background:rgba(255,107,53,.07);border-color:rgba(255,107,53,.25);color:#fff;transform:translateY(-4px);box-shadow:0 10px 32px rgba(255,107,53,.1);}
+.splash-card:hover::before{opacity:1;}
+.splash-card:hover i{transform:scale(1.18);}
 
-        .splash-sub {
-            font-size: .82em; color: var(--text-muted);
-            letter-spacing: .04em;
-        }
+.load-overlay{
+  position:absolute;inset:0;background:rgba(8,10,18,.9);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  z-index:4;opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.load-overlay.show{opacity:1;pointer-events:all;}
+.load-ring{width:44px;height:44px;border-radius:50%;position:relative;animation:spin .8s linear infinite;}
+.load-ring::before,.load-ring::after{content:'';position:absolute;inset:0;border-radius:50%;}
+.load-ring::before{border:2px solid rgba(255,255,255,.05);}
+.load-ring::after{border:2px solid transparent;border-top-color:var(--accent);filter:drop-shadow(0 0 6px var(--accent));}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-label{font-size:.7em;color:var(--text-muted);font-family:'DM Mono',monospace;letter-spacing:.1em;animation:loadPulse 1.5s ease-in-out infinite;}
+@keyframes loadPulse{0%,100%{opacity:.3}50%{opacity:1}}
+.load-bar{position:absolute;top:0;left:0;right:0;height:2px;overflow:hidden;display:none;}
+.load-bar.show{display:block;}
+.load-bar::after{content:'';position:absolute;top:0;left:-60%;width:50%;height:100%;background:linear-gradient(90deg,transparent,var(--accent),var(--accent2),transparent);animation:barSlide .75s linear infinite;}
+@keyframes barSlide{to{left:120%}}
 
-        .splash-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            max-width: 480px;
-            width: 100%;
-            padding: 0 20px;
-        }
+/* ══════════════════════════════
+   PASSWORD MODALS
+══════════════════════════════ */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  z-index:600;display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .22s;
+}
+.modal-overlay.show{opacity:1;pointer-events:all;}
+.modal-box{
+  background:linear-gradient(160deg,#121428 0%,#0b0d1e 100%);
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:20px;padding:28px;width:340px;
+  box-shadow:0 24px 70px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.03) inset;
+  display:flex;flex-direction:column;gap:16px;
+  animation:modalIn .22s cubic-bezier(.4,0,.2,1);
+}
+@keyframes modalIn{from{transform:scale(.94) translateY(10px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}
+.modal-header{display:flex;flex-direction:column;gap:6px;}
+.modal-title{font-family:'Orbitron',sans-serif;font-size:.78em;font-weight:700;letter-spacing:.08em;display:flex;align-items:center;gap:9px;}
+.modal-title.accent{color:var(--accent);}
+.modal-title.admin-color{color:var(--admin);}
+.modal-desc{font-size:.76em;color:var(--text-muted);line-height:1.55;font-family:'DM Mono',monospace;}
+.modal-input{
+  width:100%;padding:12px 14px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);
+  border-radius:10px;color:#fff;font-family:'DM Mono',monospace;
+  font-size:.86em;outline:none;transition:border-color .2s,box-shadow .2s;
+}
+.modal-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,107,53,.15);}
+.modal-input.admin-input:focus{border-color:var(--admin);box-shadow:0 0 0 3px var(--admin-glow);}
+.modal-error{font-size:.72em;color:#f87171;display:none;align-items:center;gap:6px;font-family:'DM Mono',monospace;}
+.modal-error.show{display:flex;}
+.modal-actions{display:flex;gap:8px;}
+.btn-primary{
+  flex:1;padding:11px;border:none;border-radius:10px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:.84em;
+  cursor:pointer;box-shadow:0 4px 18px var(--glow);transition:opacity .2s,transform .15s;
+}
+.btn-primary:hover{opacity:.88;transform:translateY(-1px);}
+.btn-primary.admin-primary{background:linear-gradient(135deg,var(--admin),#7c3aed);box-shadow:0 4px 18px var(--admin-glow);}
+.btn-secondary{
+  padding:11px 16px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.09);border-radius:10px;
+  color:var(--text-muted);font-family:'Syne',sans-serif;font-weight:600;
+  font-size:.84em;cursor:pointer;transition:background .2s;
+}
+.btn-secondary:hover{background:rgba(255,255,255,.09);}
 
-        .splash-card {
-            display: flex; flex-direction: column;
-            align-items: center; gap: 10px;
-            padding: 18px 12px;
-            border-radius: 13px;
-            background: rgba(255,255,255,.04);
-            border: 1px solid var(--border);
-            cursor: pointer;
-            transition: all .2s;
-            font-family: 'Nunito', sans-serif;
-            font-weight: 800;
-            font-size: .8em;
-            color: rgba(255,255,255,.55);
-        }
-        .splash-card i {
-            font-size: 1.4em;
-            color: var(--accent);
-        }
-        .splash-card:hover {
-            background: rgba(255,107,53,.1);
-            border-color: rgba(255,107,53,.3);
-            color: #fff;
-            transform: translateY(-3px);
-            box-shadow: 0 8px 28px rgba(255,107,53,.12);
-        }
+/* ══════════════════════════════
+   ADMIN DRAWER
+══════════════════════════════ */
+.admin-drawer{
+  position:fixed;top:0;right:0;bottom:0;width:340px;
+  background:linear-gradient(160deg,rgba(14,12,30,0.97) 0%,rgba(10,8,22,0.97) 100%);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-left:1px solid rgba(167,139,250,.15);
+  z-index:500;
+  transform:translateX(100%);
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.admin-drawer.open{transform:translateX(0);}
+.admin-drawer-header{
+  padding:20px 22px 16px;
+  border-bottom:1px solid rgba(167,139,250,.1);
+  display:flex;align-items:center;gap:12px;flex-shrink:0;
+  background:rgba(167,139,250,.04);
+}
+.admin-badge{
+  width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,var(--admin),#7c3aed);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85em;color:#fff;
+  box-shadow:0 4px 16px var(--admin-glow);flex-shrink:0;
+}
+.admin-title-wrap{flex:1;}
+.admin-title{font-family:'Orbitron',sans-serif;font-size:.75em;font-weight:700;letter-spacing:.1em;color:var(--admin);}
+.admin-subtitle{font-size:.65em;color:rgba(167,139,250,.45);font-family:'DM Mono',monospace;margin-top:2px;}
+.admin-close{
+  width:30px;height:30px;border-radius:8px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+  color:var(--text-muted);font-size:.8em;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .18s;
+}
+.admin-close:hover{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.2);color:#f87171;}
+.admin-body{flex:1;overflow-y:auto;padding:16px 22px;display:flex;flex-direction:column;gap:20px;}
+.admin-body::-webkit-scrollbar{width:2px;}
+.admin-body::-webkit-scrollbar-thumb{background:rgba(167,139,250,.2);border-radius:2px;}
 
-        /* ── LOADING ── */
-        .load-overlay {
-            position: absolute; inset: 0;
-            background: var(--bg);
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            gap: 16px;
-            z-index: 4;
-            opacity: 0; pointer-events: none;
-            transition: opacity .2s;
-        }
-        .load-overlay.show { opacity: 1; pointer-events: all; }
+.admin-section{display:flex;flex-direction:column;gap:10px;}
+.admin-section-label{
+  font-size:.63em;letter-spacing:.16em;color:rgba(167,139,250,.5);
+  font-family:'DM Mono',monospace;text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;
+  border-bottom:1px solid rgba(167,139,250,.06);padding-bottom:6px;
+}
+.admin-section-label i{font-size:.9em;}
 
-        .load-spinner {
-            width: 42px; height: 42px;
-            border: 2px solid rgba(255,255,255,.07);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin .7s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
+.admin-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.admin-stat{
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);
+  border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:3px;
+}
+.stat-val{font-family:'Orbitron',sans-serif;font-size:1.1em;font-weight:700;color:var(--admin);}
+.stat-lbl{font-size:.65em;color:var(--text-muted);font-family:'DM Mono',monospace;}
 
-        .load-text {
-            font-size: .75em;
-            color: rgba(255,255,255,.3);
-            font-family: 'Space Grotesk', monospace;
-            letter-spacing: .06em;
-        }
+.admin-toggle-row{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);
+  border-radius:10px;padding:11px 13px;transition:background .2s;
+}
+.admin-toggle-row:hover{background:rgba(167,139,250,.04);}
+.admin-toggle-icon{width:28px;height:28px;border-radius:7px;background:rgba(167,139,250,.1);display:flex;align-items:center;justify-content:center;font-size:.75em;color:var(--admin);flex-shrink:0;}
+.admin-toggle-info{flex:1;}
+.admin-toggle-name{font-size:.78em;font-weight:600;color:rgba(255,255,255,.8);}
+.admin-toggle-desc{font-size:.65em;color:var(--text-muted);font-family:'DM Mono',monospace;margin-top:1px;}
+.toggle-sw{position:relative;width:36px;height:20px;flex-shrink:0;cursor:pointer;}
+.toggle-sw input{opacity:0;width:0;height:0;}
+.toggle-track{position:absolute;inset:0;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);transition:background .2s,border-color .2s;}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.4);transition:transform .2s,background .2s;}
+.toggle-sw input:checked~.toggle-track{background:rgba(167,139,250,.3);border-color:rgba(167,139,250,.4);}
+.toggle-sw input:checked~.toggle-thumb{transform:translateX(16px);background:var(--admin);}
 
-        .load-bar {
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 2px; overflow: hidden;
-            display: none;
-        }
-        .load-bar.show { display: block; }
-        .load-bar::after {
-            content: ''; position: absolute;
-            top: 0; left: -60%; width: 50%; height: 100%;
-            background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent);
-            animation: slide .7s linear infinite;
-        }
-        @keyframes slide { to { left: 120%; } }
+.admin-color-row{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);
+  border-radius:10px;padding:11px 13px;
+}
+.color-swatch{width:28px;height:28px;border-radius:7px;border:1px solid rgba(255,255,255,.1);cursor:pointer;overflow:hidden;flex-shrink:0;}
+.color-swatch input[type=color]{width:200%;height:200%;transform:translate(-25%,-25%);border:none;outline:none;cursor:pointer;}
+.admin-color-info{flex:1;}
+.admin-color-name{font-size:.78em;font-weight:600;color:rgba(255,255,255,.8);}
+.admin-color-val{font-size:.65em;color:var(--text-muted);font-family:'DM Mono',monospace;margin-top:1px;}
 
-        /* ── PASSWORD MODAL ── */
-        .pw-overlay {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,.75);
-            backdrop-filter: blur(10px);
-            z-index: 600;
-            display: flex; align-items: center; justify-content: center;
-            opacity: 0; pointer-events: none;
-            transition: opacity .2s;
-        }
-        .pw-overlay.show { opacity: 1; pointer-events: all; }
+.admin-notif-wrap{display:flex;flex-direction:column;gap:8px;}
+.admin-input{
+  width:100%;padding:10px 12px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+  border-radius:9px;color:#fff;font-family:'DM Mono',monospace;font-size:.78em;
+  outline:none;transition:border-color .2s;
+}
+.admin-input:focus{border-color:rgba(167,139,250,.4);}
+.admin-input-row{display:flex;gap:7px;}
 
-        .pw-modal {
-            background: linear-gradient(160deg, #13111f, #0d0b18);
-            border: 1px solid rgba(255,255,255,.1);
-            border-radius: 18px;
-            padding: 28px 30px 24px;
-            width: 320px;
-            box-shadow: 0 20px 60px rgba(0,0,0,.7);
-            display: flex; flex-direction: column; gap: 16px;
-        }
-        .pw-modal h3 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: .8em; font-weight: 700;
-            color: var(--accent); letter-spacing: .08em;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .pw-modal p {
-            font-size: .78em; color: rgba(255,255,255,.4);
-            line-height: 1.5;
-        }
-        .pw-input {
-            width: 100%; padding: 11px 14px;
-            background: rgba(255,255,255,.06);
-            border: 1px solid rgba(255,255,255,.1);
-            border-radius: 10px;
-            color: #fff; font-family: 'Space Grotesk', sans-serif;
-            font-size: .88em; outline: none;
-            transition: border-color .2s, box-shadow .2s;
-        }
-        .pw-input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px var(--accent-glow);
-        }
-        .pw-error {
-            font-size: .73em; color: #ff4d4d;
-            display: none; align-items: center; gap: 6px;
-        }
-        .pw-error.show { display: flex; }
-        .pw-actions { display: flex; gap: 8px; }
-        .pw-confirm {
-            flex: 1; padding: 10px;
-            background: var(--accent); color: #fff;
-            border: none; border-radius: 10px;
-            font-family: 'Nunito', sans-serif; font-weight: 800;
-            font-size: .85em; cursor: pointer;
-            box-shadow: 0 4px 16px var(--accent-glow);
-            transition: opacity .2s;
-        }
-        .pw-confirm:hover { opacity: .88; }
-        .pw-cancel {
-            padding: 10px 16px;
-            background: rgba(255,255,255,.06);
-            border: 1px solid rgba(255,255,255,.1);
-            border-radius: 10px; color: rgba(255,255,255,.5);
-            font-family: 'Nunito', sans-serif; font-weight: 700;
-            font-size: .85em; cursor: pointer;
-            transition: background .2s;
-        }
-        .pw-cancel:hover { background: rgba(255,255,255,.1); }
+.admin-action-btn{
+  flex:1;padding:9px;border-radius:9px;border:1px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.03);color:var(--text-muted);
+  font-family:'Syne',sans-serif;font-weight:600;font-size:.74em;
+  cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:6px;justify-content:center;
+}
+.admin-action-btn:hover{background:rgba(167,139,250,.08);border-color:rgba(167,139,250,.2);color:var(--admin);}
+.admin-action-btn.danger:hover{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.2);color:#f87171;}
+.admin-action-btn.success:hover{background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.2);color:#4ade80;}
 
-        /* scrollbar */
-        ::-webkit-scrollbar { width: 3px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
-    </style>
+.admin-page-list{display:flex;flex-direction:column;gap:6px;}
+.admin-page-item{
+  display:flex;align-items:center;gap:9px;padding:9px 11px;
+  background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.04);
+  border-radius:9px;transition:background .18s;
+}
+.admin-page-item:hover{background:rgba(167,139,250,.04);}
+.admin-page-icon{font-size:.78em;color:var(--admin);width:16px;text-align:center;}
+.admin-page-name{flex:1;font-size:.76em;font-weight:600;color:rgba(255,255,255,.75);}
+.admin-page-vis{font-size:.7em;cursor:pointer;color:var(--text-muted);transition:color .18s;padding:4px;}
+.admin-page-vis:hover{color:var(--admin);}
+
+/* Firebase sync flash on page rows */
+.admin-page-item.syncing-row{animation:rowSync .4s ease;}
+@keyframes rowSync{0%{background:rgba(167,139,250,.12);}100%{background:rgba(255,255,255,.025);}}
+
+.admin-footer{
+  padding:14px 22px;border-top:1px solid rgba(167,139,250,.08);
+  font-size:.63em;color:rgba(167,139,250,.3);font-family:'DM Mono',monospace;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.admin-session-time{color:rgba(167,139,250,.5);}
+
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px;}
+</style>
 </head>
 <body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
 
 <div class="cursor" id="cursor"></div>
 <div class="cursor-ring" id="cursorRing"></div>
@@ -554,387 +586,715 @@
 
 <!-- ════════ SIDEBAR ════════ -->
 <div class="sidebar-outer" id="sidebarOuter">
-<button class="sb-reopen" id="reopenBtn" title="Open sidebar"><i class="fas fa-chevron-right"></i></button>
-<div class="sidebar" id="sidebar">
-
-    <div class="sb-logo"><i class="fas fa-rocket"></i></div>
-
-    <!-- Toggle -->
-    <button class="sb-toggle" id="toggleBtn" data-tip="Toggle Sidebar">
-        <i class="fas fa-chevron-right" id="toggleIcon"></i>
-    </button>
-
+  <button class="sb-reopen" id="reopenBtn"><i class="fas fa-chevron-right"></i></button>
+  <div class="sidebar" id="sidebar">
+    <div class="sb-logo" id="sbLogo" title="COSMIC">
+      <i class="fas fa-rocket"></i>
+      <span class="logo-click-counter" id="logoCounter"></span>
+    </div>
+    <button class="sb-toggle" id="toggleBtn"><i class="fas fa-chevron-left" id="toggleIcon"></i></button>
     <div class="sb-divider"></div>
-
-    <!-- Main nav -->
-    <button class="sb-btn active" data-page="home" data-tip="Home">
-        <i class="fas fa-house"></i>
-    </button>
-    <button class="sb-btn" data-page="games" data-tip="Games">
-        <i class="fas fa-gamepad"></i>
-    </button>
-    <button class="sb-btn" data-page="chat" data-tip="Chat">
-        <i class="fas fa-comments"></i>
-    </button>
-    <button class="sb-btn" data-page="code" data-tip="Code Editor">
-        <i class="fas fa-code"></i>
-    </button>
-
+    <button class="sb-btn active" data-page="home"    data-tip="Home"><i class="fas fa-house"></i></button>
+    <button class="sb-btn"        data-page="games"   data-tip="Games"><i class="fas fa-gamepad"></i></button>
+    <button class="sb-btn"        data-page="chat"    data-tip="Chat"><i class="fas fa-comments"></i></button>
+    <button class="sb-btn"        data-page="code"    data-tip="Code Editor"><i class="fas fa-code"></i></button>
     <div class="sb-divider"></div>
     <div class="sb-spacer"></div>
     <div class="sb-divider"></div>
-
-    <!-- Bottom nav -->
-    <button class="sb-btn" data-page="updates" data-tip="Update Log">
-        <i class="fas fa-file-lines"></i>
-    </button>
-    <button class="sb-btn" data-page="legal" data-tip="Legal">
-        <i class="fas fa-scale-balanced"></i>
-    </button>
-    <button class="sb-btn" data-page="dmca" data-tip="DMCA">
-        <i class="fas fa-copyright"></i>
-    </button>
-    <button class="sb-btn" data-page="suggest" data-tip="Suggestions">
-        <i class="fas fa-lightbulb"></i>
-    </button>
-
-    <!-- Discord -->
+    <button class="sb-btn" data-page="updates" data-tip="Update Log"><i class="fas fa-file-lines"></i></button>
+    <button class="sb-btn" data-page="legal"   data-tip="Legal"><i class="fas fa-scale-balanced"></i></button>
+    <button class="sb-btn" data-page="dmca"    data-tip="DMCA"><i class="fas fa-copyright"></i></button>
+    <button class="sb-btn" data-page="suggest" data-tip="Suggestions"><i class="fas fa-lightbulb"></i></button>
     <a class="sb-btn discord-btn"
        href="https://discord.gg/WpARVms6xD"
-       target="_blank"
-       rel="noopener noreferrer"
-       data-tip="Join Discord">
-        <i class="fab fa-discord"></i>
-    </a>
-
-</div>
+       target="_blank" rel="noopener noreferrer"
+       data-tip="Join Discord"><i class="fab fa-discord"></i></a>
+    <button class="sb-btn admin-btn" id="adminNavBtn" data-tip="Admin Panel" style="display:none;">
+      <i class="fas fa-shield-halved"></i>
+    </button>
+  </div>
 </div>
 
 <!-- ════════ MAIN ════════ -->
 <div class="main">
+  <div class="topbar">
+    <div class="tb-live"><div class="tb-live-dot"></div></div>
+    <div class="tb-name" id="tbName">COSMIC HUB</div>
+    <div class="tb-sync" id="tbSync">
+      <div class="sync-dot"></div>
+      <span id="tbSyncText">db</span>
+    </div>
+    <div class="tb-status ok" id="tbStatus">
+      <div class="status-dot"></div>
+      <span id="tbStatusText">ready</span>
+    </div>
+    <div class="tb-actions">
+      <button class="tb-btn" id="downloadBtn" title="Download page"><i class="fas fa-download"></i></button>
+      <button class="tb-btn" id="reloadBtn" title="Reload"><i class="fas fa-rotate-right"></i></button>
+      <button class="tb-btn admin-tb" id="adminTopBtn" title="Admin Panel" style="display:none;"><i class="fas fa-shield-halved"></i></button>
+    </div>
+  </div>
 
-    <!-- Topbar -->
-    <div class="topbar">
-        <div class="tb-live-dot"></div>
-        <div class="tb-name" id="tbName">HOME</div>
-        <div class="tb-status" id="tbStatus">
-            <i class="fas fa-circle-check" style="color:rgba(255,107,53,.5);font-size:.8em;"></i>
-            <span id="tbStatusText">ready</span>
-        </div>
-        <div class="tb-actions">
-            <button class="tb-btn" id="downloadBtn" title="Download page"><i class="fas fa-download"></i></button>
-            <button class="tb-btn" id="reloadBtn" title="Reload"><i class="fas fa-rotate-right"></i></button>
-        </div>
+  <div class="notif-banner" id="notifBanner">
+    <i class="fas fa-bullhorn"></i>
+    <span id="notifText">Admin notification</span>
+    <span class="notif-close" id="notifClose"><i class="fas fa-xmark"></i></span>
+  </div>
+
+  <div class="frame-wrap">
+    <div class="load-bar" id="loadBar"></div>
+    <div class="splash" id="splash">
+      <div class="splash-eyebrow">gaming hub v3</div>
+      <div class="splash-title">COSMIC</div>
+      <div class="splash-sub">// pick a destination to begin</div>
+      <div class="splash-grid">
+        <div class="splash-card" data-page="home"><i class="fas fa-house"></i>Home</div>
+        <div class="splash-card" data-page="games"><i class="fas fa-gamepad"></i>Games</div>
+        <div class="splash-card" data-page="chat"><i class="fas fa-comments"></i>Chat</div>
+        <div class="splash-card" data-page="code"><i class="fas fa-code"></i>Code</div>
+        <div class="splash-card" data-page="updates"><i class="fas fa-file-lines"></i>Updates</div>
+        <div class="splash-card" data-page="legal"><i class="fas fa-scale-balanced"></i>Legal</div>
+      </div>
+    </div>
+    <div class="load-overlay" id="loadOverlay">
+      <div class="load-ring"></div>
+      <div class="load-label" id="loadText">FETCHING...</div>
+    </div>
+    <iframe id="mainFrame" src="about:blank" allow="fullscreen *; autoplay *; payment *"></iframe>
+  </div>
+</div>
+
+<!-- ════════ ADMIN DRAWER ════════ -->
+<div class="admin-drawer" id="adminDrawer">
+  <div class="admin-drawer-header">
+    <div class="admin-badge"><i class="fas fa-shield-halved"></i></div>
+    <div class="admin-title-wrap">
+      <div class="admin-title">ADMIN PANEL</div>
+      <div class="admin-subtitle">cosmic control center · firebase sync</div>
+    </div>
+    <button class="admin-close" id="adminDrawerClose"><i class="fas fa-xmark"></i></button>
+  </div>
+  <div class="admin-body">
+
+    <div class="admin-section">
+      <div class="admin-section-label"><i class="fas fa-chart-bar"></i>Session Stats</div>
+      <div class="admin-stats">
+        <div class="admin-stat"><div class="stat-val" id="statVisits">0</div><div class="stat-lbl">page visits</div></div>
+        <div class="admin-stat"><div class="stat-val" id="statTime">0m</div><div class="stat-lbl">session time</div></div>
+        <div class="admin-stat"><div class="stat-val" id="statPage">—</div><div class="stat-lbl">current page</div></div>
+        <div class="admin-stat"><div class="stat-val" id="statUA">—</div><div class="stat-lbl">browser</div></div>
+      </div>
     </div>
 
-    <!-- Frame area -->
-    <div class="frame-wrap">
-        <div class="load-bar" id="loadBar"></div>
-
-        <!-- Splash -->
-        <div class="splash" id="splash">
-            <div class="splash-title">COSMIC</div>
-            <div class="splash-sub">your gateway to everything — pick a destination</div>
-            <div class="splash-grid">
-                <div class="splash-card" data-page="home"><i class="fas fa-house"></i>Home</div>
-                <div class="splash-card" data-page="games"><i class="fas fa-gamepad"></i>Games</div>
-                <div class="splash-card" data-page="chat"><i class="fas fa-comments"></i>Chat</div>
-                <div class="splash-card" data-page="code"><i class="fas fa-code"></i>Code Editor</div>
-                <div class="splash-card" data-page="updates"><i class="fas fa-file-lines"></i>Update Log</div>
-                <div class="splash-card" data-page="legal"><i class="fas fa-scale-balanced"></i>Legal</div>
-            </div>
+    <div class="admin-section">
+      <div class="admin-section-label"><i class="fas fa-palette"></i>Appearance <span style="margin-left:auto;font-size:.85em;color:rgba(167,139,250,.4);">synced</span></div>
+      <div class="admin-color-row">
+        <div class="color-swatch" style="background:var(--accent);">
+          <input type="color" id="colorAccent" value="#ff6b35">
         </div>
-
-        <!-- Loading overlay -->
-        <div class="load-overlay" id="loadOverlay">
-            <div class="load-spinner"></div>
-            <div class="load-text" id="loadText">FETCHING...</div>
+        <div class="admin-color-info">
+          <div class="admin-color-name">Accent Color</div>
+          <div class="admin-color-val" id="accentVal">#ff6b35</div>
         </div>
-
-        <iframe id="mainFrame" src="about:blank" allow="fullscreen *; autoplay *; payment *"></iframe>
+      </div>
+      <div class="admin-toggle-row">
+        <div class="admin-toggle-icon"><i class="fas fa-star"></i></div>
+        <div class="admin-toggle-info"><div class="admin-toggle-name">Particle FX</div><div class="admin-toggle-desc">background star particles</div></div>
+        <label class="toggle-sw"><input type="checkbox" id="toggleParticles" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
+      <div class="admin-toggle-row">
+        <div class="admin-toggle-icon"><i class="fas fa-circle"></i></div>
+        <div class="admin-toggle-info"><div class="admin-toggle-name">Custom Cursor</div><div class="admin-toggle-desc">cosmic cursor effect</div></div>
+        <label class="toggle-sw"><input type="checkbox" id="toggleCursor" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
+      <div class="admin-toggle-row">
+        <div class="admin-toggle-icon"><i class="fas fa-solar-panel"></i></div>
+        <div class="admin-toggle-info"><div class="admin-toggle-name">Glow Orbs</div><div class="admin-toggle-desc">background ambient orbs</div></div>
+        <label class="toggle-sw"><input type="checkbox" id="toggleOrbs" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
     </div>
+
+    <div class="admin-section">
+      <div class="admin-section-label"><i class="fas fa-bullhorn"></i>Broadcast Banner <span style="margin-left:auto;font-size:.85em;color:rgba(167,139,250,.4);">synced</span></div>
+      <div class="admin-notif-wrap">
+        <input class="admin-input" id="notifInput" type="text" placeholder="Type announcement message…">
+        <div class="admin-input-row">
+          <button class="admin-action-btn success" id="notifSend"><i class="fas fa-paper-plane"></i>Send</button>
+          <button class="admin-action-btn danger"  id="notifClear"><i class="fas fa-xmark"></i>Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-label"><i class="fas fa-layer-group"></i>Page Visibility <span style="margin-left:auto;font-size:.85em;color:rgba(167,139,250,.4);">synced</span></div>
+      <div class="admin-page-list" id="adminPageList"></div>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-label"><i class="fas fa-lock"></i>Protection</div>
+      <div class="admin-toggle-row">
+        <div class="admin-toggle-icon"><i class="fas fa-eye-slash"></i></div>
+        <div class="admin-toggle-info"><div class="admin-toggle-name">Anti-Inspect</div><div class="admin-toggle-desc">block devtools & right-click</div></div>
+        <label class="toggle-sw"><input type="checkbox" id="toggleAntiInspect" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
+      <div class="admin-toggle-row">
+        <div class="admin-toggle-icon"><i class="fas fa-key"></i></div>
+        <div class="admin-toggle-info"><div class="admin-toggle-name">Download Password</div><div class="admin-toggle-desc">require PW to download</div></div>
+        <label class="toggle-sw"><input type="checkbox" id="toggleDownloadPw" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-label"><i class="fas fa-bolt"></i>Quick Actions</div>
+      <div class="admin-input-row">
+        <button class="admin-action-btn" id="adminReload"><i class="fas fa-rotate-right"></i>Reload Page</button>
+        <button class="admin-action-btn danger" id="adminReset"><i class="fas fa-arrow-rotate-left"></i>Reset Settings</button>
+      </div>
+      <button class="admin-action-btn" id="adminLockout" style="width:100%;"><i class="fas fa-lock"></i>&nbsp; Lock Admin &amp; Close</button>
+    </div>
+
+  </div>
+  <div class="admin-footer">
+    <span>COSMIC ADMIN v2.0 · FB SYNC</span>
+    <span class="admin-session-time" id="footerTime">session: 0m 0s</span>
+  </div>
+</div>
+
+<!-- ════════ PASSWORD MODAL ════════ -->
+<div class="modal-overlay" id="pwOverlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title accent"><i class="fas fa-lock"></i> DOWNLOAD PASSWORD</div>
+      <div class="modal-desc">This file is protected. Enter the password to download.</div>
+    </div>
+    <input class="modal-input" id="pwInput" type="password" placeholder="Enter password…" autocomplete="off">
+    <div class="modal-error" id="pwError"><i class="fas fa-circle-xmark"></i> Incorrect password</div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="pwCancel">Cancel</button>
+      <button class="btn-primary" id="pwConfirm"><i class="fas fa-download"></i>&nbsp; Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ ADMIN AUTH MODAL ════════ -->
+<div class="modal-overlay" id="adminOverlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title admin-color"><i class="fas fa-shield-halved"></i> ADMIN ACCESS</div>
+      <div class="modal-desc">Enter the admin passphrase to unlock the control center.</div>
+    </div>
+    <input class="modal-input admin-input" id="adminInput" type="password" placeholder="Passphrase…" autocomplete="off">
+    <div class="modal-error" id="adminError"><i class="fas fa-circle-xmark"></i> Invalid passphrase</div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="adminCancel">Cancel</button>
+      <button class="btn-primary admin-primary" id="adminConfirm"><i class="fas fa-unlock"></i>&nbsp; Unlock</button>
+    </div>
+  </div>
 </div>
 
 <script>
-// ════════ PAGE MAP ════════
+// ════════════════════════════════════════════
+//   PAGE MAP
+// ════════════════════════════════════════════
 const PAGES = {
-    home:    { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Home2.html',           label: 'HOME' },
-    games:   { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/games2.html',          label: 'GAMES' },
-    chat:    { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/chat.html',           label: 'CHAT' },
-    code:    { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Apps/Code-editor.html', label: 'CODE EDITOR' },
-    updates: { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Upadatelog.html',     label: 'UPDATE LOG' },
-    legal:   { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Legalstuff.html',     label: 'LEGAL' },
-    dmca:    { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/DMCA.html',            label: 'DMCA' },
-    suggest: { url: 'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Suggest.html',         label: 'SUGGESTIONS' },
+  home:    { url:'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Home2.html',             label:'HOME',        icon:'fa-house' },
+  games:   { url:'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/games2.html',            label:'GAMES',       icon:'fa-gamepad' },
+  chat:    { url:'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/chat.html',             label:'CHAT',        icon:'fa-comments' },
+  code:    { url:'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Apps/Code-editor.html', label:'CODE EDITOR', icon:'fa-code' },
+  updates: { url:'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Upadatelog.html',       label:'UPDATE LOG',  icon:'fa-file-lines' },
+  legal:   { url:'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Legalstuff.html',       label:'LEGAL',       icon:'fa-scale-balanced' },
+  dmca:    { url:'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/DMCA.html',              label:'DMCA',        icon:'fa-copyright' },
+  suggest: { url:'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Suggest.html',           label:'SUGGESTIONS', icon:'fa-lightbulb' },
 };
 
 let currentPage = null;
+let visitCount  = 0;
+const sessionStart = Date.now();
 
-const frame     = document.getElementById('mainFrame');
-const splash    = document.getElementById('splash');
-const loadOver  = document.getElementById('loadOverlay');
-const loadBar   = document.getElementById('loadBar');
-const loadText  = document.getElementById('loadText');
-const tbName    = document.getElementById('tbName');
-const tbStatus  = document.getElementById('tbStatusText');
+const frame    = document.getElementById('mainFrame');
+const splash   = document.getElementById('splash');
+const loadOver = document.getElementById('loadOverlay');
+const loadBar  = document.getElementById('loadBar');
+const loadText = document.getElementById('loadText');
+const tbName   = document.getElementById('tbName');
+const tbStat   = document.getElementById('tbStatus');
+const tbStatTx = document.getElementById('tbStatusText');
 
-
-async function navigate(pageKey) {
-    if (pageKey === currentPage) return;
-    currentPage = pageKey;
-
-    const page = PAGES[pageKey];
-
-    // Update UI
-    tbName.textContent = page.label;
-
-    tbStatus.textContent = 'loading...';
-
-    document.querySelectorAll('.sb-btn[data-page]').forEach(b =>
-        b.classList.toggle('active', b.dataset.page === pageKey)
-    );
-
-    // Hide splash, show loader
-    splash.classList.add('hide');
-    loadOver.classList.add('show');
-    loadBar.classList.add('show');
-    frame.classList.remove('loaded');
-    loadText.textContent = `LOADING ${page.label}...`;
-
-    try {
-        const res = await fetch(page.url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        let html = await res.text();
-
-        const base = page.url.substring(0, page.url.lastIndexOf('/') + 1);
-
-        const lsPolyfill = `<script>
-(function(){
-  var _store = {};
-  var _ls = {
-    getItem: function(k){ return _store.hasOwnProperty(k) ? _store[k] : null; },
-    setItem: function(k,v){ _store[k] = String(v); },
-    removeItem: function(k){ delete _store[k]; },
-    clear: function(){ _store = {}; },
-    key: function(i){ return Object.keys(_store)[i] || null; },
-    get length(){ return Object.keys(_store).length; }
-  };
-  try { localStorage.getItem('_test'); } catch(e) {
-    Object.defineProperty(window, 'localStorage', { value: _ls, writable: false });
-    Object.defineProperty(window, 'sessionStorage', { value: _ls, writable: false });
-  }
-})();
-<\/script>`;
-        html = html.replace(/<head([^>]*)>/i, `<head$1><base href="${base}">${lsPolyfill}`);
-
-        const blob = new Blob([html], { type: 'text/html' });
-        const blobUrl = URL.createObjectURL(blob);
-
-        frame.onload = () => {
-            loadOver.classList.remove('show');
-            loadBar.classList.remove('show');
-            frame.classList.add('loaded');
-            tbStatus.textContent = 'loaded ✓';
-            URL.revokeObjectURL(blobUrl);
-        };
-
-        frame.src = blobUrl;
-
-    } catch (err) {
-        loadOver.classList.remove('show');
-        loadBar.classList.remove('show');
-        tbStatus.textContent = 'error ✗';
-        const errHtml = `<html><body style="background:#0a0c14;color:rgba(255,255,255,.5);font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:14px;">
-            <div style="font-size:2.5em;color:#ff6b35;">⚠</div>
-            <div>${page.label} failed to load</div>
-            <div style="font-size:.8em;opacity:.5;">${err.message}</div>
-            <div style="font-size:.75em;opacity:.35;">Make sure the GitHub repo is public</div>
-        </body></html>`;
-        const b = new Blob([errHtml], { type: 'text/html' });
-        frame.src = URL.createObjectURL(b);
-        frame.classList.add('loaded');
-    }
+// ── Firebase sync indicator ──
+function setSyncStatus(state) {
+  const el = document.getElementById('tbSync');
+  const tx = document.getElementById('tbSyncText');
+  el.className = 'tb-sync ' + state;
+  tx.textContent = state === 'synced' ? 'synced' : state === 'syncing' ? 'syncing' : 'db';
 }
 
-// Sidebar nav
-document.querySelectorAll('.sb-btn[data-page]').forEach(btn => {
-    btn.addEventListener('click', () => navigate(btn.dataset.page));
+// Flash syncing then back to synced
+function flashSync() {
+  setSyncStatus('syncing');
+  setTimeout(() => setSyncStatus('synced'), 700);
+}
+
+// Mark connected once Firebase fires first onValue
+let fbConnected = false;
+document.addEventListener('fb-ready', () => {
+  fbConnected = true;
+  setSyncStatus('synced');
 });
 
-// Splash cards
-document.querySelectorAll('.splash-card[data-page]').forEach(card => {
-    card.addEventListener('click', () => navigate(card.dataset.page));
-});
+function setStatus(state, text) {
+  tbStat.className = 'tb-status ' + state;
+  tbStatTx.textContent = text;
+}
 
-// Reload
+// ════════════════════════════════════════════
+//   NAVIGATION
+// ════════════════════════════════════════════
+async function navigate(pageKey) {
+  if (pageKey === currentPage) return;
+  currentPage = pageKey;
+  visitCount++;
+  const page = PAGES[pageKey];
+  tbName.textContent = page.label;
+  setStatus('loading', 'loading...');
+  document.querySelectorAll('.sb-btn[data-page]').forEach(b =>
+    b.classList.toggle('active', b.dataset.page === pageKey)
+  );
+  splash.classList.add('hide');
+  loadOver.classList.add('show');
+  loadBar.classList.add('show');
+  frame.classList.remove('loaded');
+  loadText.textContent = `LOADING ${page.label}...`;
+  updateAdminStats();
+  try {
+    const res = await fetch(page.url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    let html = await res.text();
+    const base = page.url.substring(0, page.url.lastIndexOf('/') + 1);
+    const lsPoly = `<script>(function(){var s={};var l={getItem:function(k){return s.hasOwnProperty(k)?s[k]:null;},setItem:function(k,v){s[k]=String(v);},removeItem:function(k){delete s[k];},clear:function(){s={};},key:function(i){return Object.keys(s)[i]||null;},get length(){return Object.keys(s).length;}};try{localStorage.getItem('_t');}catch(e){Object.defineProperty(window,'localStorage',{value:l,writable:false});Object.defineProperty(window,'sessionStorage',{value:l,writable:false});}})();<\/script>`;
+    html = html.replace(/<head([^>]*)>/i, `<head$1><base href="${base}">${lsPoly}`);
+    const blob    = new Blob([html], {type:'text/html'});
+    const blobUrl = URL.createObjectURL(blob);
+    frame.onload = () => {
+      loadOver.classList.remove('show');
+      loadBar.classList.remove('show');
+      frame.classList.add('loaded');
+      setStatus('ok', 'loaded ✓');
+      URL.revokeObjectURL(blobUrl);
+    };
+    frame.src = blobUrl;
+  } catch(err) {
+    loadOver.classList.remove('show');
+    loadBar.classList.remove('show');
+    setStatus('error', 'error ✗');
+    const errHtml = `<html><body style="background:#080a12;color:rgba(255,255,255,.4);font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:14px;">
+      <div style="font-size:2.5em;color:#ff6b35;">⚠</div>
+      <div style="font-size:.95em;">${page.label} failed to load</div>
+      <div style="font-size:.78em;opacity:.5;">${err.message}</div>
+    </body></html>`;
+    const b = new Blob([errHtml],{type:'text/html'});
+    frame.src = URL.createObjectURL(b);
+    frame.classList.add('loaded');
+  }
+}
+
+document.querySelectorAll('.sb-btn[data-page]').forEach(btn =>
+  btn.addEventListener('click', () => navigate(btn.dataset.page))
+);
+document.querySelectorAll('.splash-card[data-page]').forEach(c =>
+  c.addEventListener('click', () => navigate(c.dataset.page))
+);
 document.getElementById('reloadBtn').addEventListener('click', () => {
-    if (!currentPage) return;
-    const p = currentPage;
-    currentPage = null;
-    navigate(p);
+  if (!currentPage) return;
+  const p = currentPage; currentPage = null; navigate(p);
 });
 
-// Toggle sidebar
-const sidebar = document.getElementById('sidebar');
-const sidebarOuter = document.getElementById('sidebarOuter');
-const reopenBtn = document.getElementById('reopenBtn');
-
+// Sidebar toggle
 document.getElementById('toggleBtn').addEventListener('click', () => {
-    sidebar.classList.add('slim');
-    sidebarOuter.classList.add('collapsed');
+  document.getElementById('sidebar').classList.add('slim');
+  document.getElementById('sidebarOuter').classList.add('collapsed');
+});
+document.getElementById('reopenBtn').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.remove('slim');
+  document.getElementById('sidebarOuter').classList.remove('collapsed');
 });
 
-reopenBtn.addEventListener('click', () => {
-    sidebar.classList.remove('slim');
-    sidebarOuter.classList.remove('collapsed');
-});
-
-// ════════ CURSOR ════════
+// ════════════════════════════════════════════
+//   CURSOR
+// ════════════════════════════════════════════
 const cur  = document.getElementById('cursor');
 const ring = document.getElementById('cursorRing');
 let mx=0,my=0,rx=0,ry=0;
+window._cursorEnabled = true;
+
 document.addEventListener('mousemove', e => {
-    mx=e.clientX; my=e.clientY;
-    cur.style.left=mx+'px'; cur.style.top=my+'px';
+  if (!window._cursorEnabled) return;
+  mx=e.clientX; my=e.clientY;
+  cur.style.left=mx+'px'; cur.style.top=my+'px';
 });
 (function loop(){
-    rx+=(mx-rx)*.12; ry+=(my-ry)*.12;
-    ring.style.left=rx+'px'; ring.style.top=ry+'px';
-    requestAnimationFrame(loop);
+  rx+=(mx-rx)*.12; ry+=(my-ry)*.12;
+  ring.style.left=rx+'px'; ring.style.top=ry+'px';
+  requestAnimationFrame(loop);
 })();
 document.addEventListener('mouseover', e => {
-    if (e.target.closest('button,a,.splash-card,.sb-btn')) {
-        cur.classList.add('big'); ring.classList.add('big');
-    } else {
-        cur.classList.remove('big'); ring.classList.remove('big');
-    }
+  if (e.target.closest('button,a,.splash-card,.sb-btn,.admin-action-btn,.toggle-sw,.color-swatch')) {
+    cur.classList.add('big'); ring.classList.add('big');
+  } else {
+    cur.classList.remove('big'); ring.classList.remove('big');
+  }
 });
 
-// ════════ CANVAS BG ════════
-const cv=document.getElementById('bgCanvas');
-const ctx=cv.getContext('2d');
-let W=cv.width=window.innerWidth, H=cv.height=window.innerHeight;
-const pts=Array.from({length:90},()=>({
-    x:Math.random()*W, y:Math.random()*H,
-    s:Math.random()*2+.3,
-    vx:(Math.random()-.5)*.22, vy:(Math.random()-.5)*.22,
-    o:Math.random()*.35+.05, td:Math.random()*.005+.002, tdir:1
+// ════════════════════════════════════════════
+//   CANVAS BG
+// ════════════════════════════════════════════
+const cv  = document.getElementById('bgCanvas');
+const ctx = cv.getContext('2d');
+let W = cv.width  = window.innerWidth;
+let H = cv.height = window.innerHeight;
+window._particlesEnabled = true;
+
+const pts = Array.from({length:100},()=>({
+  x:Math.random()*W, y:Math.random()*H,
+  s:Math.random()*1.8+.2,
+  vx:(Math.random()-.5)*.18, vy:(Math.random()-.5)*.18,
+  o:Math.random()*.3+.04, td:Math.random()*.004+.002, tdir:1,
+  hue: Math.random()<.15 ? 210 : 22
 }));
-function drawBg(){
-    ctx.clearRect(0,0,W,H);
+function drawBg() {
+  ctx.clearRect(0,0,W,H);
+  if (window._particlesEnabled) {
     pts.forEach(p=>{
-        p.o+=p.td*p.tdir; if(p.o>.55||p.o<.04)p.tdir*=-1;
-        p.x+=p.vx; p.y+=p.vy;
-        if(p.x<0)p.x=W; if(p.x>W)p.x=0;
-        if(p.y<0)p.y=H; if(p.y>H)p.y=0;
-        ctx.beginPath(); ctx.arc(p.x,p.y,p.s,0,Math.PI*2);
-        ctx.fillStyle=`rgba(255,107,53,${p.o})`; ctx.fill();
+      p.o+=p.td*p.tdir; if(p.o>.5||p.o<.03)p.tdir*=-1;
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0; if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.s,0,Math.PI*2);
+      ctx.fillStyle=p.hue===22?`rgba(255,107,53,${p.o})`:`rgba(88,101,242,${p.o*.6})`;
+      ctx.fill();
     });
-    requestAnimationFrame(drawBg);
+  }
+  requestAnimationFrame(drawBg);
 }
 drawBg();
 window.addEventListener('resize',()=>{W=cv.width=window.innerWidth;H=cv.height=window.innerHeight;});
 
-// Auto-load home
-navigate('home');
-</script>
-
-<script>
-// ── ANTI-INSPECT PROTECTION ──
-document.addEventListener('contextmenu', e => e.preventDefault());
-
+// ════════════════════════════════════════════
+//   ANTI-INSPECT
+// ════════════════════════════════════════════
+let antiInspectOn = true;
+function applyAntiInspect(on) { antiInspectOn = on; }
+document.addEventListener('contextmenu', e => { if(antiInspectOn) e.preventDefault(); });
 document.addEventListener('keydown', e => {
-    if (
-        e.key === 'F12' ||
-        (e.ctrlKey && e.shiftKey && ['I','J','C','K'].includes(e.key.toUpperCase())) ||
-        (e.ctrlKey && e.key.toUpperCase() === 'U') ||
-        (e.ctrlKey && e.key.toUpperCase() === 'S')
-    ) { e.preventDefault(); e.stopPropagation(); return false; }
+  if (!antiInspectOn) return;
+  if (e.key==='F12'||(e.ctrlKey&&e.shiftKey&&['I','J','C','K'].includes(e.key.toUpperCase()))||(e.ctrlKey&&e.key.toUpperCase()==='U')||(e.ctrlKey&&e.key.toUpperCase()==='S')){
+    e.preventDefault();e.stopPropagation();return false;
+  }
 });
-
-(function devtoolsDetect() {
-    function check() {
-        if ((window.outerHeight - window.innerHeight) > 200) {
-            document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0c14;color:rgba(255,255,255,.35);font-family:monospace;font-size:1.1em;flex-direction:column;gap:12px;"><span style="font-size:2em">🚫</span>Access denied.</div>';
-        }
-    }
-    setInterval(check, 800);
+(function devCheck(){
+  function check(){if(antiInspectOn&&(window.outerHeight-window.innerHeight)>200){document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#080a12;color:rgba(255,255,255,.3);font-family:monospace;flex-direction:column;gap:12px;"><span style="font-size:2em">🚫</span>Access denied.</div>';}}
+  setInterval(check,900);
 })();
+setInterval(function(){(function(){})['constructor']('debugger')();},80);
 
-setInterval(function() { (function(){})['constructor']('debugger')(); }, 80);
-</script>
-
-<!-- ════════ PASSWORD MODAL ════════ -->
-<div class="pw-overlay" id="pwOverlay">
-    <div class="pw-modal">
-        <h3><i class="fas fa-lock"></i> DOWNLOAD PASSWORD</h3>
-        <p>This file is password protected. Enter the password to download.</p>
-        <input class="pw-input" id="pwInput" type="password" placeholder="Enter password…" autocomplete="off">
-        <div class="pw-error" id="pwError"><i class="fas fa-circle-xmark"></i> Incorrect password</div>
-        <div class="pw-actions">
-            <button class="pw-cancel" id="pwCancel">Cancel</button>
-            <button class="pw-confirm" id="pwConfirm"><i class="fas fa-download"></i> &nbsp;Download</button>
-        </div>
-    </div>
-</div>
-
-<script>
-// ── PASSWORD DOWNLOAD ──
-const PW = 'Turtles';
-let _pendingDownloadUrl = null;
-let _pendingDownloadName = null;
+// ════════════════════════════════════════════
+//   DOWNLOAD PASSWORD
+// ════════════════════════════════════════════
+const _dK = [86,72,86,121,100,71,120,108,99,119,61,61];
+const _getDP = () => atob(String.fromCharCode(..._dK));
+let downloadPwEnabled = true;
+let _pendingUrl = null, _pendingName = null;
 
 const pwOverlay = document.getElementById('pwOverlay');
 const pwInput   = document.getElementById('pwInput');
 const pwError   = document.getElementById('pwError');
 
 document.getElementById('downloadBtn').addEventListener('click', () => {
-    if (!currentPage) return;
-    const page = PAGES[currentPage];
-    _pendingDownloadUrl  = page.url;
-    _pendingDownloadName = page.label.toLowerCase().replace(/\s+/g,'-') + '.html';
-    pwInput.value = '';
-    pwError.classList.remove('show');
+  if (!currentPage) return;
+  const page = PAGES[currentPage];
+  _pendingUrl  = page.url;
+  _pendingName = page.label.toLowerCase().replace(/\s+/g,'-') + '.html';
+  if (downloadPwEnabled) {
+    pwInput.value=''; pwError.classList.remove('show');
     pwOverlay.classList.add('show');
-    setTimeout(() => pwInput.focus(), 120);
+    setTimeout(()=>pwInput.focus(),120);
+  } else { doDownload(); }
+});
+document.getElementById('pwConfirm').addEventListener('click', tryDownload);
+pwInput.addEventListener('keydown', e => { if(e.key==='Enter') tryDownload(); });
+document.getElementById('pwCancel').addEventListener('click', ()=>{ pwOverlay.classList.remove('show'); _pendingUrl=null; });
+pwOverlay.addEventListener('click', e => { if(e.target===pwOverlay){ pwOverlay.classList.remove('show'); _pendingUrl=null; }});
+
+function tryDownload() {
+  if (pwInput.value !== _getDP()) { pwError.classList.add('show'); pwInput.focus(); pwInput.select(); return; }
+  pwError.classList.remove('show'); pwOverlay.classList.remove('show'); doDownload();
+}
+async function doDownload() {
+  try {
+    const res = await fetch(_pendingUrl);
+    if (!res.ok) throw new Error('HTTP '+res.status);
+    const html = await res.text();
+    const blob = new Blob([html],{type:'text/html'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = _pendingName; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+  } catch(err) { alert('Download failed: '+err.message); }
+  _pendingUrl = null;
+}
+
+// ════════════════════════════════════════════
+//   ADMIN SYSTEM
+// ════════════════════════════════════════════
+const _aK = [97,87,120,112,97,50,86,116,101,88,82,49,99,110,82,115,90,88,77,61];
+const _getAP = () => atob(String.fromCharCode(..._aK));
+
+let adminUnlocked = false;
+let logoClickCount = 0;
+let logoClickTimer = null;
+
+const adminOverlay = document.getElementById('adminOverlay');
+const adminInput   = document.getElementById('adminInput');
+const adminError   = document.getElementById('adminError');
+const adminDrawer  = document.getElementById('adminDrawer');
+const adminNavBtn  = document.getElementById('adminNavBtn');
+const adminTopBtn  = document.getElementById('adminTopBtn');
+
+document.getElementById('sbLogo').addEventListener('click', () => {
+  const logo    = document.getElementById('sbLogo');
+  const counter = document.getElementById('logoCounter');
+  logo.classList.add('logo-clicked');
+  setTimeout(()=>logo.classList.remove('logo-clicked'),300);
+  logoClickCount++;
+  if (logoClickCount>=2&&logoClickCount<5){ counter.textContent=logoClickCount; counter.classList.add('show'); }
+  if (logoClickTimer) clearTimeout(logoClickTimer);
+  logoClickTimer = setTimeout(()=>{ logoClickCount=0; counter.classList.remove('show'); }, 3000);
+  if (logoClickCount>=5) {
+    logoClickCount=0; counter.classList.remove('show');
+    adminUnlocked ? openAdminDrawer() : openAdminAuth();
+  }
 });
 
-document.getElementById('pwConfirm').addEventListener('click', attemptDownload);
-pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') attemptDownload(); });
-document.getElementById('pwCancel').addEventListener('click', closePwModal);
-pwOverlay.addEventListener('click', e => { if (e.target === pwOverlay) closePwModal(); });
-
-function closePwModal() {
-    pwOverlay.classList.remove('show');
-    _pendingDownloadUrl = null;
+function openAdminAuth() {
+  adminInput.value=''; adminError.classList.remove('show');
+  adminOverlay.classList.add('show');
+  setTimeout(()=>adminInput.focus(),120);
 }
 
-async function attemptDownload() {
-    if (pwInput.value !== PW) {
-        pwError.classList.add('show');
-        pwInput.focus();
-        pwInput.select();
-        return;
-    }
-    pwError.classList.remove('show');
-    pwOverlay.classList.remove('show');
+document.getElementById('adminConfirm').addEventListener('click', tryAdminUnlock);
+adminInput.addEventListener('keydown', e => { if(e.key==='Enter') tryAdminUnlock(); });
+document.getElementById('adminCancel').addEventListener('click', ()=>adminOverlay.classList.remove('show'));
+adminOverlay.addEventListener('click', e => { if(e.target===adminOverlay) adminOverlay.classList.remove('show'); });
 
-    try {
-        const res = await fetch(_pendingDownloadUrl);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const html = await res.text();
-        const blob = new Blob([html], { type: 'text/html' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = _pendingDownloadName;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-    } catch(err) {
-        alert('Download failed: ' + err.message);
-    }
-    _pendingDownloadUrl = null;
+function tryAdminUnlock() {
+  if (adminInput.value !== _getAP()) { adminError.classList.add('show'); adminInput.focus(); adminInput.select(); return; }
+  adminError.classList.remove('show'); adminOverlay.classList.remove('show');
+  adminUnlocked = true;
+  adminNavBtn.style.display=''; adminTopBtn.style.display='';
+  adminNavBtn.classList.add('admin-active');
+  cur.classList.add('admin-mode'); ring.classList.add('admin-mode');
+  buildAdminPageList();
+  openAdminDrawer();
 }
+
+function openAdminDrawer() { if(!adminUnlocked) return; adminDrawer.classList.add('open'); updateAdminStats(); }
+function closeAdminDrawer() { adminDrawer.classList.remove('open'); }
+function lockAdmin() {
+  adminUnlocked=false;
+  adminNavBtn.style.display='none'; adminTopBtn.style.display='none';
+  adminNavBtn.classList.remove('admin-active');
+  cur.classList.remove('admin-mode'); ring.classList.remove('admin-mode');
+  closeAdminDrawer();
+}
+
+document.getElementById('adminDrawerClose').addEventListener('click', closeAdminDrawer);
+document.getElementById('adminNavBtn').addEventListener('click', ()=>{ if(adminUnlocked) openAdminDrawer(); });
+document.getElementById('adminTopBtn').addEventListener('click', ()=>{ if(adminUnlocked) openAdminDrawer(); });
+document.getElementById('adminLockout').addEventListener('click', lockAdmin);
+
+function updateAdminStats() {
+  document.getElementById('statVisits').textContent = visitCount;
+  const ua = navigator.userAgent;
+  const browser = ua.includes('Chrome')?'Chrome':ua.includes('Firefox')?'Firefox':ua.includes('Safari')?'Safari':'Other';
+  document.getElementById('statUA').textContent = browser;
+  document.getElementById('statPage').textContent = currentPage ? currentPage.toUpperCase() : '—';
+}
+
+setInterval(()=>{
+  const elapsed=Math.floor((Date.now()-sessionStart)/1000);
+  const m=Math.floor(elapsed/60),s=elapsed%60;
+  const str=`${m}m ${s}s`;
+  const el=document.getElementById('statTime');
+  const ft=document.getElementById('footerTime');
+  if(el) el.textContent=`${m}m`;
+  if(ft) ft.textContent=`session: ${str}`;
+},1000);
+
+// ════════════════════════════════════════════
+//   ADMIN CONTROLS → WRITE TO FIREBASE
+// ════════════════════════════════════════════
+
+function fbWrite(path, val) {
+  if (window._fbSet) {
+    flashSync();
+    window._fbSet(path, val);
+  }
+}
+
+// Accent color
+document.getElementById('colorAccent').addEventListener('input', function(){
+  const val = this.value;
+  document.documentElement.style.setProperty('--accent', val);
+  document.getElementById('accentVal').textContent = val;
+  this.closest('.color-swatch').style.background = val;
+  fbWrite('appearance/accent', val);
+});
+
+// Particles
+document.getElementById('toggleParticles').addEventListener('change', function(){
+  window._particlesEnabled = this.checked;
+  if(!this.checked) ctx.clearRect(0,0,W,H);
+  fbWrite('appearance/particles', this.checked);
+});
+
+// Cursor
+document.getElementById('toggleCursor').addEventListener('change', function(){
+  window._cursorEnabled = this.checked;
+  cur.style.display  = this.checked ? '' : 'none';
+  ring.style.display = this.checked ? '' : 'none';
+  document.body.style.cursor = this.checked ? 'none' : 'auto';
+  fbWrite('appearance/cursor', this.checked);
+});
+
+// Orbs
+document.getElementById('toggleOrbs').addEventListener('change', function(){
+  document.querySelectorAll('.orb').forEach(o => o.style.display = this.checked ? '' : 'none');
+  fbWrite('appearance/orbs', this.checked);
+});
+
+// Protection (local only — no reason to sync these)
+document.getElementById('toggleAntiInspect').addEventListener('change', function(){ applyAntiInspect(this.checked); });
+document.getElementById('toggleDownloadPw').addEventListener('change', function(){ downloadPwEnabled = this.checked; });
+
+// ── Notification banner ──
+document.getElementById('notifSend').addEventListener('click', () => {
+  const msg = document.getElementById('notifInput').value.trim();
+  if (!msg) return;
+  // Write to Firebase → onValue listener applies it for everyone
+  if (window._fbSet) {
+    flashSync();
+    window._fbSet('notification', { text: msg, visible: true });
+  } else {
+    // Fallback if Firebase not ready
+    document.getElementById('notifText').textContent = msg;
+    document.getElementById('notifBanner').classList.add('show');
+  }
+});
+
+document.getElementById('notifClear').addEventListener('click', () => {
+  if (window._fbSet) {
+    flashSync();
+    window._fbSet('notification', { text: '', visible: false });
+  } else {
+    document.getElementById('notifBanner').classList.remove('show');
+  }
+  document.getElementById('notifInput').value = '';
+});
+
+document.getElementById('notifClose').addEventListener('click', () => {
+  document.getElementById('notifBanner').classList.remove('show');
+});
+
+// ── Quick actions ──
+document.getElementById('adminReload').addEventListener('click', ()=>{
+  if(!currentPage) return;
+  const p=currentPage; currentPage=null; navigate(p);
+});
+document.getElementById('adminReset').addEventListener('click', ()=>{
+  const defaults = {
+    accent: '#ff6b35', particles: true, cursor: true, orbs: true
+  };
+  // Apply locally
+  document.documentElement.style.setProperty('--accent','#ff6b35');
+  document.getElementById('colorAccent').value='#ff6b35';
+  document.getElementById('accentVal').textContent='#ff6b35';
+  document.getElementById('toggleParticles').checked=true; window._particlesEnabled=true;
+  document.getElementById('toggleCursor').checked=true; window._cursorEnabled=true;
+  cur.style.display=''; ring.style.display=''; document.body.style.cursor='none';
+  document.getElementById('toggleOrbs').checked=true;
+  document.querySelectorAll('.orb').forEach(o=>o.style.display='');
+  document.getElementById('toggleAntiInspect').checked=true; antiInspectOn=true;
+  document.getElementById('toggleDownloadPw').checked=true; downloadPwEnabled=true;
+  // Sync appearance reset to Firebase
+  if (window._fbSet) {
+    flashSync();
+    window._fbSet('appearance', defaults);
+    window._fbSet('notification', { text: '', visible: false });
+  }
+});
+
+// ── Page list ──
+// Track local hidden state so we know current visibility per page
+const pageHidden = {};
+
+function buildAdminPageList() {
+  const list = document.getElementById('adminPageList');
+  list.innerHTML = '';
+  Object.entries(PAGES).forEach(([key, page])=>{
+    const hidden = pageHidden[key] || false;
+    const row = document.createElement('div');
+    row.className = 'admin-page-item';
+    row.dataset.key = key;
+    row.innerHTML = `
+      <i class="fas ${page.icon} admin-page-icon"></i>
+      <span class="admin-page-name">${page.label}</span>
+      <span class="admin-page-vis" data-key="${key}" title="Toggle visibility">
+        <i class="fas ${hidden ? 'fa-eye-slash' : 'fa-eye'}" ${hidden ? 'style="color:rgba(248,113,113,.6)"' : ''}></i>
+      </span>`;
+    list.appendChild(row);
+  });
+
+  list.addEventListener('click', e => {
+    const vis = e.target.closest('.admin-page-vis');
+    if (!vis) return;
+    const key = vis.dataset.key;
+    pageHidden[key] = !pageHidden[key];
+    const nowVisible = !pageHidden[key];
+    // Animate row
+    const row = vis.closest('.admin-page-item');
+    row.classList.remove('syncing-row');
+    void row.offsetWidth;
+    row.classList.add('syncing-row');
+    // Write to Firebase → listener handles UI for all users
+    if (window._fbSet) {
+      flashSync();
+      window._fbSet('pages/' + key, nowVisible);
+    } else {
+      // Fallback
+      const btn = document.querySelector(`.sb-btn[data-page="${key}"]`);
+      if (btn) btn.style.display = nowVisible ? '' : 'none';
+      const icon = vis.querySelector('i');
+      if (icon) { icon.className = nowVisible ? 'fas fa-eye' : 'fas fa-eye-slash'; icon.style.color = nowVisible ? '' : 'rgba(248,113,113,.6)'; }
+    }
+  });
+}
+
+// Sync pageHidden state when Firebase pushes page updates
+// (So our local toggle state stays consistent with DB)
+document.addEventListener('fb-ready', () => {
+  // pageHidden will be updated via the onValue listener's effect on the UI
+  // We need to also update pageHidden when Firebase fires, so toggles stay correct
+  const origOnValue = window._fbSet; // Firebase module already handles this via onValue
+  // We hook into the page vis icons to detect current state
+  const checkHiddenFromUI = () => {
+    Object.keys(PAGES).forEach(key => {
+      const btn = document.querySelector(`.sb-btn[data-page="${key}"]`);
+      if (btn) pageHidden[key] = btn.style.display === 'none';
+    });
+  };
+  // Check every 2s to keep pageHidden in sync
+  setInterval(checkHiddenFromUI, 2000);
+});
+
+// Auto-load
+navigate('home');
 </script>
-
 </body>
 </html>
