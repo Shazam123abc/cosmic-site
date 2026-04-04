@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COSMIC — Gaming Hub</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, update, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCajSTlUbhe3dEkm2n5AHQfwOmkUmsCzK8",
+  authDomain: "cosmiceditionchat.firebaseapp.com",
+  databaseURL: "https://cosmiceditionchat-default-rtdb.firebaseio.com",
+  projectId: "cosmiceditionchat",
+  storageBucket: "cosmiceditionchat.firebasestorage.app",
+  messagingSenderId: "307679721622",
+  appId: "1:307679721622:web:56a567006eec9b17806ab7"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+const adminRef = ref(db, 'cosmic-admin');
+
+window._fbSet    = (path, val) => set(ref(db, 'cosmic-admin/' + path), val);
+window._fbUpdate = (obj) => update(adminRef, obj);
+// Atomic increment — safe for concurrent votes
+window._fbIncrement = (path) => update(ref(db, 'cosmic-admin'), { [path]: increment(1) });
+
+onValue(adminRef, (snap) => {
+  const data = snap.val();
+  if (!data) return;
+
+  /* ── Notification banner ── */
+  const banner  = document.getElementById('notifBanner');
+  const notifTx = document.getElementById('notifText');
+  const notifIn = document.getElementById('notifInput');
+  if (banner && notifTx) {
+    if (data.notification?.visible && data.notification?.text) {
+      notifTx.textContent = data.notification.text;
+      banner.classList.add('show');
+      if (notifIn) notifIn.value = data.notification.text;
+    } else {
+      banner.classList.remove('show');
+      if (notifIn) notifIn.value = '';
+    }
+  }
+
+  /* ── Page visibility ── */
+  if (data.pages) {
+    Object.entries(data.pages).forEach(([key, visible]) => {
+      const btn     = document.querySelector(`.sb-btn[data-page="${key}"]`);
+      const visIcon = document.querySelector(`.admin-page-vis[data-key="${key}"] i`);
+      if (btn) btn.style.display = visible ? '' : 'none';
+      if (visIcon) {
+        visIcon.className = visible ? 'fas fa-eye' : 'fas fa-eye-slash';
+        visIcon.style.color = visible ? '' : 'rgba(248,113,113,.6)';
+      }
+    });
+  }
+
+  /* ── Appearance ── */
+  if (data.appearance) {
+    const a = data.appearance;
+    if (a.accent) {
+      document.documentElement.style.setProperty('--accent', a.accent);
+      const inp = document.getElementById('colorAccent');
+      const val = document.getElementById('accentVal');
+      if (inp) inp.value = a.accent;
+      if (val) val.textContent = a.accent;
+      const swatch = inp?.closest('.color-swatch');
+      if (swatch) swatch.style.background = a.accent;
+    }
+    if (a.bgColor) {
+      document.documentElement.style.setProperty('--bg', a.bgColor);
+      document.documentElement.style.setProperty('--surface', a.bgColor);
+      const inp = document.getElementById('colorBg');
+      const val = document.getElementById('bgColorVal');
+      if (inp) inp.value = a.bgColor;
+      if (val) val.textContent = a.bgColor;
+      const swatch = inp?.closest('.color-swatch');
+      if (swatch) swatch.style.background = a.bgColor;
+    }
+    if (typeof a.particles !== 'undefined') {
+      window._particlesEnabled = a.particles;
+      const chk = document.getElementById('toggleParticles');
+      if (chk) chk.checked = a.particles;
+      if (!a.particles) {
+        const cv = document.getElementById('bgCanvas');
+        if (cv) cv.getContext('2d').clearRect(0,0,cv.width,cv.height);
+      }
+    }
+    if (typeof a.cursor !== 'undefined') {
+      const cur  = document.getElementById('cursor');
+      const ring = document.getElementById('cursorRing');
+      window._cursorEnabled = a.cursor;
+      const chk = document.getElementById('toggleCursor');
+      if (chk) chk.checked = a.cursor;
+      if (cur)  cur.style.display  = a.cursor ? '' : 'none';
+      if (ring) ring.style.display = a.cursor ? '' : 'none';
+      document.body.style.cursor = a.cursor ? 'none' : 'auto';
+    }
+    if (typeof a.orbs !== 'undefined') {
+      document.querySelectorAll('.orb').forEach(o => o.style.display = a.orbs ? '' : 'none');
+      const chk = document.getElementById('toggleOrbs');
+      if (chk) chk.checked = a.orbs;
+    }
+    if (typeof a.grayscale !== 'undefined') {
+      document.getElementById('mainFrame').style.filter = a.grayscale ? 'grayscale(1)' : '';
+      const chk = document.getElementById('toggleGrayscale');
+      if (chk) chk.checked = a.grayscale;
+    }
+    if (typeof a.blurContent !== 'undefined') {
+      const wrap = document.querySelector('.frame-wrap');
+      if (wrap) {
+        const existing = wrap.querySelector('.blur-shield');
+        if (a.blurContent && !existing) {
+          const shield = document.createElement('div');
+          shield.className = 'blur-shield';
+          shield.innerHTML = '<div class="blur-msg"><i class="fas fa-eye-slash"></i><span>Content hidden by admin</span></div>';
+          wrap.appendChild(shield);
+        } else if (!a.blurContent && existing) {
+          existing.remove();
+        }
+      }
+      const chk = document.getElementById('toggleBlurContent');
+      if (chk) chk.checked = a.blurContent;
+    }
+  }
+
+  /* ── Force navigate ── */
+  if (data.forceNav && data.forceNav.page && data.forceNav.active) {
+    navigate(data.forceNav.page);
+  }
+
+  /* ── Custom CSS ── */
+  if (typeof data.customCSS !== 'undefined') {
+    let styleEl = document.getElementById('adminCustomStyle');
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'adminCustomStyle';
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = data.customCSS || '';
+    const ta = document.getElementById('customCSSInput');
+    if (ta && !ta.dataset.focused) ta.value = data.customCSS || '';
+  }
+
+  /* ── Poll ── */
+  if (typeof data.poll !== 'undefined') {
+    renderPollWidget(data.poll);
+  }
+});
+
+window._fbReady = true;
+document.dispatchEvent(new Event('fb-ready'));
+</script>
+
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#080a12;--surface:#0e1020;--surface2:#121626;
+  --accent:#ff6b35;--accent2:#ff9a00;--accent3:#ff3d7f;
+  --glow:rgba(255,107,53,0.4);--glow2:rgba(255,154,0,0.25);
+  --text:#f0f0f8;--text-muted:rgba(240,240,248,0.38);
+  --border:rgba(255,255,255,0.06);--border-accent:rgba(255,107,53,0.22);
+  --discord:#5865F2;--admin:#a78bfa;--admin-glow:rgba(167,139,250,0.35);
+  --sidebar-w:64px;--radius:16px;
+}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;overflow:hidden;cursor:none;}
+
+/* ── CURSOR ── */
+.cursor{position:fixed;width:8px;height:8px;background:var(--accent);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:plus-lighter;transition:width .1s,height .1s,background .2s;}
+.cursor-ring{position:fixed;width:30px;height:30px;border:1.5px solid var(--accent);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);opacity:.25;transition:width .18s,height .18s,opacity .18s;}
+.cursor.big{width:4px;height:4px;}.cursor-ring.big{width:44px;height:44px;opacity:.5;}
+.cursor.admin-mode{background:var(--admin);}.cursor-ring.admin-mode{border-color:var(--admin);}
+
+/* ── BG ── */
+#bgCanvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.6;}
+.orb{position:fixed;border-radius:50%;pointer-events:none;z-index:0;filter:blur(90px);animation:orbFloat 12s ease-in-out infinite;}
+.orb1{width:500px;height:500px;background:radial-gradient(circle,rgba(255,107,53,0.07) 0%,transparent 70%);top:-120px;left:-100px;}
+.orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(88,101,242,0.06) 0%,transparent 70%);bottom:-80px;right:20%;animation-delay:-5s;}
+.orb3{width:300px;height:300px;background:radial-gradient(circle,rgba(255,61,127,0.05) 0%,transparent 70%);top:40%;right:-60px;animation-delay:-9s;}
+@keyframes orbFloat{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(20px,-15px) scale(1.05);}66%{transform:translate(-10px,20px) scale(.95);}}
+
+/* ── SIDEBAR ── */
+.sidebar-outer{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;flex-shrink:0;z-index:50;position:relative;}
+.sidebar{width:var(--sidebar-w);background:rgba(14,16,32,0.82);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid var(--border);border-radius:22px;display:flex;flex-direction:column;align-items:center;padding:12px 0 10px;gap:0;box-shadow:0 8px 40px rgba(0,0,0,0.65),0 0 0 1px rgba(255,255,255,0.03) inset,inset 0 1px 0 rgba(255,255,255,0.06);position:relative;height:100%;max-height:calc(100vh - 24px);overflow:hidden;transition:width .3s cubic-bezier(.4,0,.2,1),opacity .3s,padding .3s;}
+.sidebar::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:40px;height:200px;background:linear-gradient(0deg,rgba(255,107,53,0.06),transparent);border-radius:50%;pointer-events:none;}
+.sb-logo{width:40px;height:40px;border-radius:14px;background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-size:.9em;color:#fff;box-shadow:0 4px 20px var(--glow),inset 0 1px 0 rgba(255,255,255,.2);margin-bottom:8px;flex-shrink:0;position:relative;transition:transform .25s,box-shadow .25s;cursor:pointer;}
+.sb-logo::before{content:'';position:absolute;inset:0;border-radius:14px;background:linear-gradient(135deg,rgba(255,255,255,.22) 0%,transparent 55%);}
+.sb-logo:hover{transform:scale(1.07) rotate(-3deg);box-shadow:0 6px 28px var(--glow);}
+.sb-logo.logo-clicked{animation:logoBounce .3s cubic-bezier(.36,.07,.19,.97);}
+@keyframes logoBounce{0%,100%{transform:scale(1);}30%{transform:scale(1.2);}60%{transform:scale(.95);}}
+.logo-click-counter{position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;background:var(--admin);font-size:.6em;font-weight:800;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;color:#fff;box-shadow:0 0 8px var(--admin-glow);}
+.logo-click-counter.show{opacity:1;}
+.sb-divider{width:28px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.09),transparent);margin:6px 0;flex-shrink:0;}
+.sb-btn{width:42px;height:42px;border-radius:13px;border:1px solid transparent;background:transparent;color:var(--text-muted);font-size:.92em;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s ease;margin:2px 0;position:relative;text-decoration:none;flex-shrink:0;}
+.sb-btn:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.07);color:rgba(255,255,255,.88);transform:scale(1.07);}
+.sb-btn.active{background:rgba(255,107,53,.14);border-color:rgba(255,107,53,.26);color:var(--accent);box-shadow:0 0 18px rgba(255,107,53,.12);}
+.sb-btn.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:20px;background:linear-gradient(180deg,var(--accent2),var(--accent));border-radius:0 3px 3px 0;box-shadow:2px 0 12px var(--glow);}
+.sb-btn.discord-btn{color:rgba(88,101,242,.65);}
+.sb-btn.discord-btn:hover{background:rgba(88,101,242,.12);border-color:rgba(88,101,242,.28);color:var(--discord);box-shadow:0 0 18px rgba(88,101,242,.18);}
+.sb-btn.admin-btn{color:rgba(167,139,250,.55);}
+.sb-btn.admin-btn:hover{background:rgba(167,139,250,.12);border-color:rgba(167,139,250,.3);color:var(--admin);box-shadow:0 0 18px var(--admin-glow);}
+.sb-btn.admin-btn.admin-active{background:rgba(167,139,250,.16);border-color:rgba(167,139,250,.35);color:var(--admin);box-shadow:0 0 20px var(--admin-glow);animation:adminPulse 2s ease-in-out infinite;}
+@keyframes adminPulse{0%,100%{box-shadow:0 0 20px var(--admin-glow);}50%{box-shadow:0 0 32px var(--admin-glow),0 0 60px rgba(167,139,250,.15);}}
+.sb-btn[data-tip]::after{content:attr(data-tip);position:absolute;left:calc(100% + 16px);top:50%;transform:translateY(-50%) scale(.9);background:rgba(12,14,28,0.96);backdrop-filter:blur(14px);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:9px;font-size:.7em;font-family:'Syne',sans-serif;font-weight:600;white-space:nowrap;pointer-events:none;opacity:0;box-shadow:0 8px 24px rgba(0,0,0,.55);transition:opacity .15s,transform .15s;z-index:200;}
+.sb-btn:hover[data-tip]::after{opacity:1;transform:translateY(-50%) scale(1);}
+.sb-btn.discord-btn[data-tip]::after{border-color:rgba(88,101,242,.3);}
+.sb-btn.admin-btn[data-tip]::after{border-color:rgba(167,139,250,.3);}
+.sb-toggle{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text-muted);font-size:.72em;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;margin-bottom:6px;flex-shrink:0;}
+.sb-toggle:hover{background:rgba(255,255,255,.09);color:var(--accent);border-color:var(--border-accent);}
+.sidebar.slim{width:0;padding:0;border:none;overflow:hidden;opacity:0;pointer-events:none;}
+.sidebar-outer.collapsed .sb-reopen{display:flex;}
+.sb-reopen{display:none;width:26px;height:26px;border-radius:0 8px 8px 0;background:rgba(14,16,32,0.85);backdrop-filter:blur(20px);border:1px solid var(--border);border-left:none;color:var(--text-muted);font-size:.72em;align-items:center;justify-content:center;cursor:pointer;position:absolute;left:8px;top:50%;transform:translateY(-50%);transition:all .2s;z-index:60;}
+.sb-reopen:hover{color:var(--accent);}
+.sb-spacer{flex:1;}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;z-index:1;}
+.topbar{height:50px;background:rgba(10,12,24,0.90);backdrop-filter:blur(24px);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;padding:0 18px;flex-shrink:0;z-index:20;transition:height .3s,opacity .3s;}
+.topbar.hidden-bar{height:0;opacity:0;pointer-events:none;overflow:hidden;}
+.tb-live{display:flex;align-items:center;gap:7px;flex-shrink:0;}
+.tb-live-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:blink 2.4s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.tb-name{font-family:'Orbitron',sans-serif;font-weight:700;font-size:.72em;letter-spacing:.12em;color:rgba(255,255,255,.82);flex:1;}
+.tb-status{font-size:.67em;color:var(--text-muted);font-family:'DM Mono',monospace;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.03);border:1px solid var(--border);padding:4px 10px;border-radius:8px;}
+.tb-status.ok .status-dot{background:#4ade80;box-shadow:0 0 6px rgba(74,222,128,.6);}
+.tb-status.loading .status-dot{background:var(--accent);box-shadow:0 0 6px var(--glow);}
+.tb-status.error .status-dot{background:#f87171;box-shadow:0 0 6px rgba(248,113,113,.6);}
+.status-dot{width:5px;height:5px;border-radius:50%;transition:background .3s,box-shadow .3s;}
+.tb-sync{font-size:.62em;color:var(--text-muted);font-family:'DM Mono',monospace;display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.02);border:1px solid var(--border);padding:3px 9px;border-radius:7px;}
+.sync-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.2);transition:background .3s,box-shadow .3s;}
+.tb-sync.synced .sync-dot{background:#4ade80;box-shadow:0 0 5px rgba(74,222,128,.5);}
+.tb-sync.syncing .sync-dot{background:var(--admin);box-shadow:0 0 5px var(--admin-glow);animation:syncPulse .6s ease-in-out infinite;}
+@keyframes syncPulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.tb-actions{display:flex;gap:5px;}
+.tb-btn{width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text-muted);font-size:.73em;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .18s;text-decoration:none;}
+.tb-btn:hover{background:rgba(255,255,255,.09);color:var(--accent);border-color:var(--border-accent);}
+.tb-btn.admin-tb{color:rgba(167,139,250,.5);}
+.tb-btn.admin-tb:hover{color:var(--admin);border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.08);}
+.notif-banner{background:linear-gradient(90deg,rgba(167,139,250,.12),rgba(167,139,250,.06));border-bottom:1px solid rgba(167,139,250,.15);padding:8px 18px;font-size:.74em;color:rgba(167,139,250,.9);display:none;align-items:center;gap:10px;flex-shrink:0;font-family:'DM Mono',monospace;}
+.notif-banner.show{display:flex;}
+.notif-banner i{font-size:.9em;color:var(--admin);}
+.notif-close{margin-left:auto;cursor:pointer;opacity:.5;transition:opacity .2s;}
+.notif-close:hover{opacity:1;}
+.frame-wrap{flex:1;position:relative;background:var(--bg);overflow:hidden;}
+#mainFrame{width:100%;height:100%;border:none;display:block;opacity:0;transition:opacity .4s ease,filter .4s ease;}
+#mainFrame.loaded{opacity:1;}
+
+/* ── BLUR SHIELD ── */
+.blur-shield{position:absolute;inset:0;background:rgba(8,10,18,.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);display:flex;align-items:center;justify-content:center;z-index:10;}
+.blur-msg{display:flex;flex-direction:column;align-items:center;gap:14px;color:rgba(255,255,255,.35);font-family:'DM Mono',monospace;font-size:.85em;}
+.blur-msg i{font-size:2em;color:rgba(167,139,250,.3);}
+
+/* ── SPLASH ── */
+.splash{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;background:var(--bg);z-index:5;transition:opacity .4s,pointer-events .4s;}
+.splash.hide{opacity:0;pointer-events:none;}
+.splash-eyebrow{font-family:'DM Mono',monospace;font-size:.65em;letter-spacing:.25em;color:var(--text-muted);text-transform:uppercase;display:flex;align-items:center;gap:10px;}
+.splash-eyebrow::before,.splash-eyebrow::after{content:'';flex:1;height:1px;}
+.splash-eyebrow::before{background:linear-gradient(90deg,transparent,rgba(255,255,255,.08));}
+.splash-eyebrow::after{background:linear-gradient(90deg,rgba(255,255,255,.08),transparent);}
+.splash-title{font-family:'Orbitron',sans-serif;font-weight:900;font-size:6.5em;background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 45%,#fff 85%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 60px rgba(255,107,53,.5));animation:float 5s ease-in-out infinite;line-height:.9;letter-spacing:-.02em;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.splash-sub{font-size:.8em;color:var(--text-muted);letter-spacing:.06em;font-family:'DM Mono',monospace;}
+.splash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:500px;width:100%;padding:0 20px;}
+.splash-card{display:flex;flex-direction:column;align-items:center;gap:11px;padding:20px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid var(--border);cursor:pointer;transition:all .22s;font-family:'Syne',sans-serif;font-weight:700;font-size:.78em;color:var(--text-muted);position:relative;overflow:hidden;}
+.splash-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,107,53,.06),transparent);opacity:0;transition:opacity .22s;}
+.splash-card i{font-size:1.5em;color:var(--accent);transition:transform .22s;}
+.splash-card:hover{background:rgba(255,107,53,.07);border-color:rgba(255,107,53,.25);color:#fff;transform:translateY(-4px);box-shadow:0 10px 32px rgba(255,107,53,.1);}
+.splash-card:hover::before{opacity:1;}
+.splash-card:hover i{transform:scale(1.18);}
+.load-overlay{position:absolute;inset:0;background:rgba(8,10,18,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;z-index:4;opacity:0;pointer-events:none;transition:opacity .2s;}
+.load-overlay.show{opacity:1;pointer-events:all;}
+.load-ring{width:44px;height:44px;border-radius:50%;position:relative;animation:spin .8s linear infinite;}
+.load-ring::before,.load-ring::after{content:'';position:absolute;inset:0;border-radius:50%;}
+.load-ring::before{border:2px solid rgba(255,255,255,.05);}
+.load-ring::after{border:2px solid transparent;border-top-color:var(--accent);filter:drop-shadow(0 0 6px var(--accent));}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-label{font-size:.7em;color:var(--text-muted);font-family:'DM Mono',monospace;letter-spacing:.1em;animation:loadPulse 1.5s ease-in-out infinite;}
+@keyframes loadPulse{0%,100%{opacity:.3}50%{opacity:1}}
+.load-bar{position:absolute;top:0;left:0;right:0;height:2px;overflow:hidden;display:none;}
+.load-bar.show{display:block;}
+.load-bar::after{content:'';position:absolute;top:0;left:-60%;width:50%;height:100%;background:linear-gradient(90deg,transparent,var(--accent),var(--accent2),transparent);animation:barSlide .75s linear infinite;}
+@keyframes barSlide{to{left:120%}}
+
+/* ── MODALS ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:600;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s;}
+.modal-overlay.show{opacity:1;pointer-events:all;}
+.modal-box{background:linear-gradient(160deg,#121428 0%,#0b0d1e 100%);border:1px solid rgba(255,255,255,.09);border-radius:20px;padding:28px;width:340px;box-shadow:0 24px 70px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.03) inset;display:flex;flex-direction:column;gap:16px;animation:modalIn .22s cubic-bezier(.4,0,.2,1);}
+@keyframes modalIn{from{transform:scale(.94) translateY(10px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}
+.modal-header{display:flex;flex-direction:column;gap:6px;}
+.modal-title{font-family:'Orbitron',sans-serif;font-size:.78em;font-weight:700;letter-spacing:.08em;display:flex;align-items:center;gap:9px;}
+.modal-title.accent{color:var(--accent);}
+.modal-title.admin-color{color:var(--admin);}
+.modal-desc{font-size:.76em;color:var(--text-muted);line-height:1.55;font-family:'DM Mono',monospace;}
+.modal-input{width:100%;padding:12px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:10px;color:#fff;font-family:'DM Mono',monospace;font-size:.86em;outline:none;transition:border-color .2s,box-shadow .2s;}
+.modal-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,107,53,.15);}
+.modal-input.admin-input:focus{border-color:var(--admin);box-shadow:0 0 0 3px var(--admin-glow);}
+.modal-error{font-size:.72em;color:#f87171;display:none;align-items:center;gap:6px;font-family:'DM Mono',monospace;}
+.modal-error.show{display:flex;}
+.modal-actions{display:flex;gap:8px;}
+.btn-primary{flex:1;padding:11px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:.84em;cursor:pointer;box-shadow:0 4px 18px var(--glow);transition:opacity .2s,transform .15s;}
+.btn-primary:hover{opacity:.88;transform:translateY(-1px);}
+.btn-primary.admin-primary{background:linear-gradient(135deg,var(--admin),#7c3aed);box-shadow:0 4px 18px var(--admin-glow);}
+.btn-secondary{padding:11px 16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:10px;color:var(--text-muted);font-family:'Syne',sans-serif;font-weight:600;font-size:.84em;cursor:pointer;transition:background .2s;}
+.btn-secondary:hover{background:rgba(255,255,255,.09);}
+
+/* ══════════════════════════════
+   ADMIN DRAWER
+══════════════════════════════ */
+.admin-drawer{position:fixed;top:0;right:0;bottom:0;width:360px;background:linear-gradient(160deg,rgba(14,12,30,0.97) 0%,rgba(10,8,22,0.97) 100%);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-left:1px solid rgba(167,139,250,.15);z-index:900;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden;}
+.admin-drawer.open{transform:translateX(0);}
+.admin-drawer-header{padding:20px 22px 16px;border-bottom:1px solid rgba(167,139,250,.1);display:flex;align-items:center;gap:12px;flex-shrink:0;background:rgba(167,139,250,.04);}
+.admin-badge{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--admin),#7c3aed);display:flex;align-items:center;justify-content:center;font-size:.85em;color:#fff;box-shadow:0 4px 16px var(--admin-glow);flex-shrink:0;}
+.admin-title-wrap{flex:1;}
+.admin-title{font-family:'Orbitron',sans-serif;font-size:.75em;font-weight:700;letter-spacing:.1em;color:var(--admin);}
+.admin-subtitle{font-size:.65em;color:rgba(167,139,250,.45);font-family:'DM Mono',monospace;margin-top:2px;}
+.admin-close{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:var(--text-muted);font-size:.8em;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;}
+.admin-close:hover{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.2);color:#f87171;}
+
+.admin-body{flex:1;overflow-y:auto;padding:16px 22px;display:flex;flex-direction:column;gap:20px;}
+.admin-body::-webkit-scrollbar{width:2px;}
+.admin-body::-webkit-scrollbar-thumb{background:rgba(167,139,250,.2);border-radius:2px;}
+
+.admin-section{display:flex;flex-direction:column;gap:10px;}
+.admin-section-label{font-size:.63em;letter-spacing:.16em;color:rgba(167,139,250,.5);font-family:'DM Mono',monospace;text-transform:uppercase;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(167,139,250,.06);padding-bottom:6px;}
+.admin-section-label i{font-size:.9em;}
+.admin-section-label .synced-tag{margin-left:auto;font-size:.85em;color:rgba(167,139,250,.4);}
+
+.admin-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.admin-stat{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:3px;}
+.stat-val{font-family:'Orbitron',sans-serif;font-size:1.1em;font-weight:700;color:var(--admin);}
+.stat-lbl{font-size:.65em;color:var(--text-muted);font-family:'DM Mono',monospace;}
+
+.admin-toggle-row{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);border-radius:10px;padding:11px 13px;transition:background .2s;}
+.admin-toggle-row:hover{background:rgba(167,139,250,.04);}
+.admin-toggle-row.danger-row:hover{background:rgba(248,113,113,.04);border-color:rgba(248,113,113,.1);}
+.admin-toggle-icon{width:28px;height:28px;border-radius:7px;background:rgba(167,139,250,.1);display:flex;align-items:center;justify-content:center;font-size:.75em;color:var(--admin);flex-shrink:0;}
+.admin-toggle-icon.danger-icon{background:rgba(248,113,113,.1);color:#f87171;}
+.admin-toggle-icon.warn-icon{background:rgba(251,191,36,.1);color:#fbbf24;}
+.admin-toggle-icon.poll-icon-c{background:rgba(255,107,53,.12);color:var(--accent);}
+.admin-toggle-info{flex:1;}
+.admin-toggle-name{font-size:.78em;font-weight:600;color:rgba(255,255,255,.8);}
+.admin-toggle-desc{font-size:.65em;color:var(--text-muted);font-family:'DM Mono',monospace;margin-top:1px;}
+.toggle-sw{position:relative;width:36px;height:20px;flex-shrink:0;cursor:pointer;}
+.toggle-sw input{opacity:0;width:0;height:0;}
+.toggle-track{position:absolute;inset:0;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);transition:background .2s,border-color .2s;}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.4);transition:transform .2s,background .2s;}
+.toggle-sw input:checked~.toggle-track{background:rgba(167,139,250,.3);border-color:rgba(167,139,250,.4);}
+.toggle-sw input:checked~.toggle-thumb{transform:translateX(16px);background:var(--admin);}
+
+.admin-color-row{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);border-radius:10px;padding:11px 13px;}
+.color-swatch{width:28px;height:28px;border-radius:7px;border:1px solid rgba(255,255,255,.1);cursor:pointer;overflow:hidden;flex-shrink:0;}
+.color-swatch input[type=color]{width:200%;height:200%;transform:translate(-25%,-25%);border:none;outline:none;cursor:pointer;}
+.admin-color-info{flex:1;}
+.admin-color-name{font-size:.78em;font-weight:600;color:rgba(255,255,255,.8);}
+.admin-color-val{font-size:.65em;color:var(--text-muted);font-family:'DM Mono',monospace;margin-top:1px;}
+
+/* Slider row */
+.admin-slider-row{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);border-radius:10px;padding:11px 13px;flex-direction:column;align-items:stretch;}
+.admin-slider-header{display:flex;align-items:center;gap:10px;}
+.admin-slider-val{font-size:.72em;font-family:'DM Mono',monospace;color:var(--admin);min-width:38px;text-align:right;}
+.admin-slider{width:100%;-webkit-appearance:none;height:3px;border-radius:3px;background:rgba(255,255,255,.1);outline:none;cursor:pointer;margin-top:6px;}
+.admin-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--admin);box-shadow:0 0 8px var(--admin-glow);cursor:pointer;}
+.admin-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--admin);border:none;box-shadow:0 0 8px var(--admin-glow);cursor:pointer;}
+
+/* Dropdown */
+.admin-select{width:100%;padding:9px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:9px;color:#fff;font-family:'DM Mono',monospace;font-size:.78em;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(167,139,250,.5)'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
+.admin-select:focus{border-color:rgba(167,139,250,.4);}
+.admin-select option{background:#0e0c1e;}
+
+.admin-notif-wrap{display:flex;flex-direction:column;gap:8px;}
+.admin-input{width:100%;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:9px;color:#fff;font-family:'DM Mono',monospace;font-size:.78em;outline:none;transition:border-color .2s;}
+.admin-input:focus{border-color:rgba(167,139,250,.4);}
+.admin-input-row{display:flex;gap:7px;}
+.admin-textarea{width:100%;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:9px;color:#fff;font-family:'DM Mono',monospace;font-size:.72em;outline:none;resize:vertical;min-height:90px;line-height:1.5;transition:border-color .2s;}
+.admin-textarea:focus{border-color:rgba(167,139,250,.4);}
+
+.admin-action-btn{flex:1;padding:9px;border-radius:9px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);color:var(--text-muted);font-family:'Syne',sans-serif;font-weight:600;font-size:.74em;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:6px;justify-content:center;}
+.admin-action-btn:hover{background:rgba(167,139,250,.08);border-color:rgba(167,139,250,.2);color:var(--admin);}
+.admin-action-btn.danger:hover{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.2);color:#f87171;}
+.admin-action-btn.success:hover{background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.2);color:#4ade80;}
+.admin-action-btn.warn:hover{background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.2);color:#fbbf24;}
+
+.admin-page-list{display:flex;flex-direction:column;gap:6px;}
+.admin-page-item{display:flex;align-items:center;gap:9px;padding:9px 11px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.04);border-radius:9px;transition:background .18s;}
+.admin-page-item:hover{background:rgba(167,139,250,.04);}
+.admin-page-icon{font-size:.78em;color:var(--admin);width:16px;text-align:center;}
+.admin-page-name{flex:1;font-size:.76em;font-weight:600;color:rgba(255,255,255,.75);}
+.admin-page-vis{font-size:.7em;cursor:pointer;color:var(--text-muted);transition:color .18s;padding:4px;}
+.admin-page-vis:hover{color:var(--admin);}
+.admin-page-item.syncing-row{animation:rowSync .4s ease;}
+@keyframes rowSync{0%{background:rgba(167,139,250,.12);}100%{background:rgba(255,255,255,.025);}}
+
+/* Danger zone */
+.danger-zone{border:1px solid rgba(248,113,113,.12);border-radius:10px;padding:12px;background:rgba(248,113,113,.025);}
+
+.admin-footer{padding:14px 22px;border-top:1px solid rgba(167,139,250,.08);font-size:.63em;color:rgba(167,139,250,.3);font-family:'DM Mono',monospace;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.admin-session-time{color:rgba(167,139,250,.5);}
+
+/* Toast */
+.admin-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(14,12,30,0.96);border:1px solid rgba(167,139,250,.25);color:var(--admin);font-family:'DM Mono',monospace;font-size:.73em;padding:10px 18px;border-radius:10px;backdrop-filter:blur(16px);z-index:700;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap;box-shadow:0 8px 28px rgba(0,0,0,.5);}
+.admin-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.admin-toast.success{border-color:rgba(74,222,128,.3);color:#4ade80;}
+.admin-toast.warn{border-color:rgba(251,191,36,.3);color:#fbbf24;}
+.admin-toast.danger{border-color:rgba(248,113,113,.3);color:#f87171;}
+
+/* ══════════════════════════════
+   POLL WIDGET (user-facing)
+══════════════════════════════ */
+.poll-widget{
+  position:fixed;bottom:24px;right:24px;width:310px;
+  background:linear-gradient(160deg,rgba(14,12,30,0.98),rgba(10,8,22,0.98));
+  border:1px solid rgba(255,107,53,.28);border-radius:20px;padding:20px;
+  z-index:800;
+  box-shadow:0 20px 60px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.03) inset,0 0 40px rgba(255,107,53,.06);
+  display:none;flex-direction:column;gap:14px;
+  backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+}
+.poll-widget.show{display:flex;animation:pollIn .35s cubic-bezier(.34,1.56,.64,1);}
+@keyframes pollIn{
+  from{transform:translateY(28px) scale(.92);opacity:0;}
+  to{transform:translateY(0) scale(1);opacity:1;}
+}
+.poll-widget-header{display:flex;align-items:flex-start;gap:11px;}
+.poll-widget-icon{
+  width:32px;height:32px;border-radius:9px;
+  background:linear-gradient(135deg,rgba(255,107,53,.2),rgba(255,154,0,.15));
+  border:1px solid rgba(255,107,53,.25);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.8em;color:var(--accent);flex-shrink:0;
+  box-shadow:0 4px 14px rgba(255,107,53,.15);
+}
+.poll-widget-meta{flex:1;}
+.poll-eyebrow{
+  font-size:.58em;letter-spacing:.2em;
+  color:var(--accent);font-family:'DM Mono',monospace;
+  text-transform:uppercase;margin-bottom:4px;
+  display:flex;align-items:center;gap:6px;
+}
+.poll-eyebrow::before{
+  content:'';width:5px;height:5px;border-radius:50%;
+  background:var(--accent);box-shadow:0 0 6px var(--accent);
+  animation:blink 1.8s ease-in-out infinite;
+}
+.poll-question{font-size:.86em;font-weight:700;color:#fff;line-height:1.38;}
+.poll-close-btn{
+  width:26px;height:26px;border-radius:7px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+  color:var(--text-muted);cursor:pointer;font-size:.78em;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .18s;flex-shrink:0;
+}
+.poll-close-btn:hover{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.2);color:#f87171;}
+
+/* Vote options */
+.poll-options{display:flex;flex-direction:column;gap:7px;}
+.poll-opt-btn{
+  width:100%;padding:10px 14px;border-radius:11px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.04);
+  color:rgba(255,255,255,.78);
+  font-family:'Syne',sans-serif;font-weight:600;font-size:.79em;
+  cursor:pointer;transition:all .2s;text-align:left;
+  display:flex;align-items:center;gap:10px;
+}
+.poll-opt-btn::before{
+  content:'';width:14px;height:14px;border-radius:50%;
+  border:1.5px solid rgba(255,255,255,.2);flex-shrink:0;
+  transition:all .2s;
+}
+.poll-opt-btn:hover{
+  background:rgba(255,107,53,.1);border-color:rgba(255,107,53,.32);
+  color:#fff;transform:translateX(3px);
+}
+.poll-opt-btn:hover::before{border-color:var(--accent);background:rgba(255,107,53,.3);}
+
+/* Results */
+.poll-results{display:flex;flex-direction:column;gap:9px;}
+.poll-result-item{display:flex;flex-direction:column;gap:5px;}
+.poll-result-header{display:flex;justify-content:space-between;align-items:center;}
+.poll-result-label{font-size:.74em;color:rgba(255,255,255,.72);font-family:'Syne',sans-serif;font-weight:600;display:flex;align-items:center;gap:6px;}
+.poll-result-label .my-vote-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 5px var(--accent);}
+.poll-result-pct{font-size:.7em;color:var(--accent);font-family:'DM Mono',monospace;font-weight:500;}
+.poll-bar-track{height:5px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden;}
+.poll-bar-fill{height:100%;border-radius:5px;width:0%;transition:width .7s cubic-bezier(.4,0,.2,1);background:linear-gradient(90deg,var(--accent),var(--accent2));}
+.poll-bar-fill.winner{background:linear-gradient(90deg,#4ade80,#22d3ee);}
+
+/* Footer */
+.poll-widget-footer{display:flex;align-items:center;justify-content:space-between;padding-top:4px;border-top:1px solid rgba(255,255,255,.05);}
+.poll-total-lbl{font-size:.63em;color:var(--text-muted);font-family:'DM Mono',monospace;}
+.poll-voted-badge{display:flex;align-items:center;gap:5px;font-size:.65em;color:#4ade80;font-family:'DM Mono',monospace;}
+.poll-voted-badge i{font-size:.9em;}
+
+/* ══════════════════════════════
+   ADMIN POLL SECTION
+══════════════════════════════ */
+.admin-poll-wrap{display:flex;flex-direction:column;gap:8px;}
+.admin-poll-option-row{display:flex;align-items:center;gap:6px;}
+.admin-poll-option-row .opt-num{
+  width:20px;height:20px;border-radius:5px;
+  background:rgba(255,107,53,.12);border:1px solid rgba(255,107,53,.2);
+  color:var(--accent);font-size:.62em;font-family:'DM Mono',monospace;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;
+}
+.admin-poll-status{
+  display:flex;align-items:center;gap:8px;padding:10px 12px;
+  background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);
+  border-radius:9px;
+}
+.admin-poll-status.active-status{
+  background:rgba(74,222,128,.05);border-color:rgba(74,222,128,.15);
+}
+.poll-status-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.2);flex-shrink:0;}
+.admin-poll-status.active-status .poll-status-dot{
+  background:#4ade80;box-shadow:0 0 8px rgba(74,222,128,.6);
+  animation:blink 1.8s ease-in-out infinite;
+}
+.poll-status-text{font-size:.72em;color:var(--text-muted);font-family:'DM Mono',monospace;flex:1;}
+.admin-poll-status.active-status .poll-status-text{color:#4ade80;}
+.poll-status-count{font-size:.68em;font-family:'DM Mono',monospace;color:var(--admin);}
+
+.admin-live-results{
+  display:none;flex-direction:column;gap:6px;
+  padding:12px;background:rgba(255,255,255,.02);
+  border:1px solid rgba(255,255,255,.05);border-radius:9px;
+}
+.admin-live-results.show{display:flex;}
+.admin-results-title{font-size:.63em;letter-spacing:.12em;color:rgba(167,139,250,.4);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:2px;}
+.admin-result-row{display:flex;flex-direction:column;gap:4px;}
+.admin-result-header{display:flex;justify-content:space-between;align-items:center;}
+.admin-result-opt{font-size:.71em;color:rgba(255,255,255,.6);font-family:'DM Mono',monospace;}
+.admin-result-count{font-size:.69em;color:var(--admin);font-family:'DM Mono',monospace;}
+.admin-result-bar-track{height:4px;border-radius:4px;background:rgba(255,255,255,.05);overflow:hidden;}
+.admin-result-bar{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--admin),#7c3aed);width:0%;transition:width .5s ease;}
+.admin-result-bar.leader{background:linear-gradient(90deg,#4ade80,#22d3ee);}
+.admin-results-total{font-size:.65em;color:rgba(167,139,250,.35);font-family:'DM Mono',monospace;margin-top:2px;text-align:right;}
+
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+<canvas id="bgCanvas"></canvas>
+
+<!-- ADMIN TOAST -->
+<div class="admin-toast" id="adminToast"></div>
+
+<!-- ════════ SIDEBAR ════════ -->
+<div class="sidebar-outer" id="sidebarOuter">
+  <button class="sb-reopen" id="reopenBtn"><i class="fas fa-chevron-right"></i></button>
+  <div class="sidebar" id="sidebar">
+    <div class="sb-logo" id="sbLogo" title="COSMIC">
+      <i class="fas fa-rocket"></i>
+      <span class="logo-click-counter" id="logoCounter"></span>
+    </div>
+    <button class="sb-toggle" id="toggleBtn"><i class="fas fa-chevron-left" id="toggleIcon"></i></button>
+    <div class="sb-divider"></div>
+    <button class="sb-btn active" data-page="home"    data-tip="Home"><i class="fas fa-house"></i></button>
+    <button class="sb-btn"        data-page="games"   data-tip="Games"><i class="fas fa-gamepad"></i></button>
+    <button class="sb-btn"        data-page="chat"    data-tip="Chat"><i class="fas fa-comments"></i></button>
+    <button class="sb-btn"        data-page="code"    data-tip="Code Editor"><i class="fas fa-code"></i></button>
+    <div class="sb-divider"></div>
+    <div class="sb-spacer"></div>
+    <div class="sb-divider"></div>
+    <button class="sb-btn" data-page="updates" data-tip="Update Log"><i class="fas fa-file-lines"></i></button>
+    <button class="sb-btn" data-page="legal"   data-tip="Legal"><i class="fas fa-scale-balanced"></i></button>
+    <button class="sb-btn" data-page="dmca"    data-tip="DMCA"><i class="fas fa-copyright"></i></button>
+    <button class="sb-btn" data-page="suggest" data-tip="Suggestions"><i class="fas fa-lightbulb"></i></button>
+    <a class="sb-btn discord-btn" href="https://discord.gg/WpARVms6xD" target="_blank" rel="noopener noreferrer" data-tip="Join Discord"><i class="fab fa-discord"></i></a>
+    <button class="sb-btn admin-btn" id="adminNavBtn" data-tip="Admin Panel" style="display:none;"><i class="fas fa-shield-halved"></i></button>
+  </div>
+</div>
+
+<!-- ════════ MAIN ════════ -->
+<div class="main">
+  <div class="topbar" id="topbar">
+    <div class="tb-live"><div class="tb-live-dot"></div></div>
+    <div class="tb-name" id="tbName">COSMIC HUB</div>
+    <div class="tb-sync" id="tbSync"><div class="sync-dot"></div><span id="tbSyncText">db</span></div>
+    <div class="tb-status ok" id="tbStatus"><div class="status-dot"></div><span id="tbStatusText">ready</span></div>
+    <div class="tb-actions">
+      <button class="tb-btn" id="downloadBtn" title="Download page"><i class="fas fa-download"></i></button>
+      <button class="tb-btn" id="reloadBtn" title="Reload"><i class="fas fa-rotate-right"></i></button>
+      <button class="tb-btn admin-tb" id="adminTopBtn" title="Admin Panel" style="display:none;"><i class="fas fa-shield-halved"></i></button>
+    </div>
+  </div>
+
+  <div class="notif-banner" id="notifBanner">
+    <i class="fas fa-bullhorn"></i>
+    <span id="notifText">Admin notification</span>
+    <span class="notif-close" id="notifClose"><i class="fas fa-xmark"></i></span>
+  </div>
+
+  <div class="frame-wrap">
+    <div class="load-bar" id="loadBar"></div>
+    <div class="splash" id="splash">
+      <div class="splash-eyebrow">gaming hub v3</div>
+      <div class="splash-title">COSMIC</div>
+      <div class="splash-sub">// pick a destination to begin</div>
+      <div class="splash-grid">
+        <div class="splash-card" data-page="home"><i class="fas fa-house"></i>Home</div>
+        <div class="splash-card" data-page="games"><i class="fas fa-gamepad"></i>Games</div>
+        <div class="splash-card" data-page="chat"><i class="fas fa-comments"></i>Chat</div>
+        <div class="splash-card" data-page="code"><i class="fas fa-code"></i>Code</div>
+        <div class="splash-card" data-page="updates"><i class="fas fa-file-lines"></i>Updates</div>
+        <div class="splash-card" data-page="legal"><i class="fas fa-scale-balanced"></i>Legal</div>
+      </div>
+    </div>
+    <div class="load-overlay" id="loadOverlay">
+      <div class="load-ring"></div>
+      <div class="load-label" id="loadText">FETCHING...</div>
+    </div>
+    <iframe id="mainFrame" src="about:blank" allow="fullscreen *; autoplay *; payment *"></iframe>
+  </div>
+</div>
+
+<!-- ════════ POLL WIDGET (user-facing) ════════ -->
+<div class="poll-widget" id="pollWidget">
+  <div class="poll-widget-header">
+    <div class="poll-widget-icon"><i class="fas fa-chart-bar"></i></div>
+    <div class="poll-widget-meta">
+      <div class="poll-eyebrow">community poll</div>
+      <div class="poll-question" id="pollWidgetQuestion">Loading…</div>
+    </div>
+    <button class="poll-close-btn" id="pollWidgetClose" title="Dismiss"><i class="fas fa-xmark"></i></button>
+  </div>
+  <div class="poll-options" id="pollWidgetOptions"></div>
+  <div class="poll-results" id="pollWidgetResults" style="display:none;"></div>
+  <div class="poll-widget-footer">
+    <span class="poll-total-lbl" id="pollTotalVotes">0 votes</span>
+    <span id="pollVotedBadge" class="poll-voted-badge" style="display:none;"><i class="fas fa-check-circle"></i>voted</span>
+  </div>
+</div>
+
+<!-- ════════ ADMIN DRAWER ════════ -->
+<div class="admin-drawer" id="adminDrawer">
+  <div class="admin-drawer-header">
+    <div class="admin-badge"><i class="fas fa-shield-halved"></i></div>
+    <div class="admin-title-wrap">
+      <div class="admin-title">ADMIN PANEL</div>
+      <div class="admin-subtitle">cosmic control center · firebase sync</div>
+    </div>
+    <button class="admin-close" id="adminDrawerClose"><i class="fas fa-xmark"></i></button>
+  </div>
+  <div class="admin-body">
+
+    <!-- SESSION STATS -->
+    <div class="admin-section">
+      <div class="admin-section-label"><i class="fas fa-chart-bar"></i>Session Stats</div>
+      <div class="admin-stats">
+        <div class="admin-stat"><div class="stat-val" id="statVisits">0</div><div class="stat-lbl">page visits</div></div>
+        <div class="admin-stat"><div class="stat-val" id="statTime">0m</div><div class="stat-lbl">session time</div></div>
+        <div class="admin-stat"><div class="stat-val" id="statPage">—</div><div class="stat-lbl">current page</div></div>
+        <div class="admin-stat"><div class="stat-val" id="statUA">—</div><div class="stat-lbl">browser</div></div>
+      </div>
+    </div>
+
+    <!-- SITE CONTROL -->
+    <div class="admin-section">
+      <div class="admin-section-label"><i class="fas fa-tower-broadcast"></i>Site Control <span class="synced-tag">synced</span></div>
+
+      <div style="display:flex;flex-direction:column;gap:7px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);border-radius:10px;padding:11px 13px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="admin-toggle-icon warn-icon"><i class="fas fa-arrow-right-to-bracket"></i></div>
+          <div class="admin-toggle-info">
+            <div class="admin-toggle-name">Force Navigate</div>
+            <div class="admin-toggle-desc">push all users to a page</div>
+          </div>
+        </div>
+        <select class="admin-select" id="forceNavSelect">
+          <option value="home">Home</option>
+          <option value="games">Games</option>
+          <option value="chat">Chat</option>
+          <option value="code">Code Editor</option>
+          <option value="updates">Update Log</option>
+          <option value="legal">Legal</option>
+          <option value="dmca">DMCA</option>
+          <option value="suggest">Suggestions</option>
+        </select>
+        <button class="admin-action-btn warn" id="forceNavBtn" style="width:100%;"><i class="fas fa-bolt"></i>Force Navigate All</button>
+      </div>
+
+      <div class="admin-toggle-row">
+        <div class="admin-toggle-icon"><i class="fas fa-minus"></i></div>
+        <div class="admin-toggle-info">
+          <div class="admin-toggle-name">Hide Topbar</div>
+          <div class="admin-toggle-desc">collapse the top navigation bar</div>
+        </div>
+        <label class="toggle-sw"><input type="checkbox" id="toggleTopbar"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
+
+      <div class="admin-toggle-row">
+        <div class="admin-toggle-icon"><i class="fas fa-sidebar"></i></div>
+        <div class="admin-toggle-info">
+          <div class="admin-toggle-name">Lock Sidebar</div>
+          <div class="admin-toggle-desc">prevent users from collapsing sidebar</div>
+        </div>
+        <label class="toggle-sw"><input type="checkbox" id="toggleSidebarLock"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
+    </div>
+
+    <!-- ════ POLL SYSTEM ════ -->
+    <div class="admin-section">
+      <div class="admin-section-label"><i class="fas fa-square-poll-horizontal"></i>Poll System <span class="synced-tag">synced</span></div>
+
+      <!-- Status indicator -->
+      <div class="admin-poll-status" id="adminPollStatus">
+        <div class="poll-status-dot"></div>
+        <span class="poll-status-text">No active poll</span>
+        <span class="poll-status-count" id="adminPollVoteCount"></span>
+      </div>
+
+      <!-- Poll builder -->
+      <div class="admin-poll-wrap" id="pollBuilder">
+        <input class="admin-input" id="pollQuestion" type="text" placeholder="Poll question…" maxlength="120">
+        <div style="display:flex;flex-direction:column;gap:5px;" id="pollOptionsWrap">
+          <div class="admin-poll-option-row">
+            <div class="opt-num">1</div>
+            <input class="admin-input" data-opt="0" placeholder="Option 1…" maxlength="60" style="flex:1;">
+          </div>
+          <div class="admin-poll-option-row">
+            <div class="opt-num">2</div>
+            <input class="admin-input" data-opt="1" placeholder="Option 2…" maxlength="60" style="flex:1;">
+          </div>
+          <div class="admin-poll-option-row">
+            <div class="opt-num">3</div>
+            <input class="admin-input" data-opt="2" placeholder="Option 3 (optional)…" maxlength="60" style="flex:1;">
+          </div>
+          <div class="admin-poll-option-row">
+            <div class="opt-num">4</div>
+            <input class="admin-input" data-opt="3" placeholder="Option 4 (optional)…" maxlength="60" style="flex:1;">
+          </div>
+        </div>
+        <div class="admin-input-row">
+          <button class="admin-action-btn success" id="pollLaunch"><i class="fas fa-rocket"></i>Launch Poll</button>
+          <button class="admin-action-btn danger" id="pollEnd"><i class="fas fa-stop"></i>End Poll</button>
+        </div>
+        <button class="admin-action-btn" id="pollWipe" style="width:100%;font-size:.7em;"><i class="fas fa-trash"></i>Wipe Poll Data</button>
+      </div>
+
+      <!-- Live results (admin) -->
+      <div class="admin-live-results" id="adminLiveResults">
+        <div class="admin-results-title"><i class="fas fa-signal" style="margin-right:5px;"></i>Live Results</div>
+        <div id="adminResultsList"></div>
+        <div class="admin-results-total" id="adminResultsTotal">0 total votes</div>
+      </div>
+    </div>
+
+    <!-- APPEARANCE -->
+    <div class="admin-section">
+      <div class="admin-section-label"><i class="fas fa-palette"></i>Appearance <span class="synced-tag">synced</span></div>
+
+      <div class="admin-color-row">
+        <div class="color-swatch" style="background:var(--accent);">
+          <input type="color" id="colorAccent" value="#ff6b35">
+        </div>
+        <div class="admin-color-info">
+          <div class="admin-color-name">Accent Color</div>
+          <div class="admin-color-val" id="accentVal">#ff6b35</div>
+        </div>
+      </div>
+
+      <div class="admin-color-row">
+        <div class="color-swatch" style="background:#080a12;">
+          <input type="color" id="colorBg" value="#080a12">
+        </div>
+        <div class="admin-color-info">
+          <div class="admin-color-name">Background Color</div>
+          <div class="admin-color-val" id="bgColorVal">#080a12</div>
+        </div>
+      </div>
+
+      <div class="admin-slider-row">
+        <div class="admin-slider-header">
+          <div class="admin-toggle-icon"><i class="fas fa-magnifying-glass"></i></div>
+          <div class="admin-toggle-info">
+            <div class="admin-toggle-name">Frame Zoom</div>
+            <div class="admin-toggle-desc">scale the loaded page content</div>
+          </div>
+          <span class="admin-slider-val" id="zoomVal">100%</span>
+        </div>
+        <input type="range" class="admin-slider" id="frameZoom" min="50" max="150" value="100" step="5">
+      </div>
+
+      <div class="admin-toggle-row">
+        <div class="admin-toggle-icon"><i class="fas fa-star"></i></div>
+        <div class="admin-toggle-info"><div class="admin-toggle-name">Particle FX</div><div class="admin-toggle-desc">background star particles</div></div>
+        <label class="toggle-sw"><input type="checkbox" id="toggleParticles" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
+      <div class="admin-toggle-row">
+        <div class="admin-toggle-icon"><i class="fas fa-circle"></i></div>
+        <div class="admin-toggle-info"><div class="admin-toggle-name">Custom Cursor</div><div class="admin-toggle-desc">cosmic cursor effect</div></div>
+        <label class="toggle-sw"><input type="checkbox" id="toggleCursor" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
+      <div class="admin-toggle-row">
+        <div class="admin-toggle-icon"><i class="fas fa-solar-panel"></i></div>
+        <div class="admin-toggle-info"><div class="admin-toggle-name">Glow Orbs</div><div class="admin-toggle-desc">background ambient orbs</div></div>
+        <label class="toggle-sw"><input type="checkbox" id="toggleOrbs" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
+      <div class="admin-toggle-row">
+        <div class="admin-toggle-icon"><i class="fas fa-droplet-slash"></i></div>
+        <div class="admin-toggle-info"><div class="admin-toggle-name">Grayscale Mode</div><div class="admin-toggle-desc">desaturate loaded page content</div></div>
+        <label class="toggle-sw"><input type="checkbox" id="toggleGrayscale"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
+      <div class="admin-toggle-row">
+        <div class="admin-toggle-icon"><i class="fas fa-eye-slash"></i></div>
+        <div class="admin-toggle-info"><div class="admin-toggle-name">Blur Content</div><div class="admin-toggle-desc">hide iframe from users</div></div>
+        <label class="toggle-sw"><input type="checkbox" id="toggleBlurContent"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
+    </div>
+
+    <!-- BROADCAST BANNER -->
+    <div class="admin-section">
+      <div class="admin-section-label"><i class="fas fa-bullhorn"></i>Broadcast Banner <span class="synced-tag">synced</span></div>
+      <div class="admin-notif-wrap">
+        <input class="admin-input" id="notifInput" type="text" placeholder="Type announcement message…">
+        <div class="admin-input-row">
+          <button class="admin-action-btn success" id="notifSend"><i class="fas fa-paper-plane"></i>Send</button>
+          <button class="admin-action-btn danger"  id="notifClear"><i class="fas fa-xmark"></i>Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CUSTOM CSS -->
+    <div class="admin-section">
+      <div class="admin-section-label"><i class="fas fa-code"></i>Custom CSS Injector <span class="synced-tag">synced</span></div>
+      <textarea class="admin-textarea" id="customCSSInput" placeholder="/* inject any CSS here */&#10;body { font-size: 16px; }"></textarea>
+      <div class="admin-input-row">
+        <button class="admin-action-btn success" id="cssApply"><i class="fas fa-play"></i>Apply</button>
+        <button class="admin-action-btn danger"  id="cssClear"><i class="fas fa-trash"></i>Clear CSS</button>
+      </div>
+    </div>
+
+    <!-- PAGE VISIBILITY -->
+    <div class="admin-section">
+      <div class="admin-section-label"><i class="fas fa-layer-group"></i>Page Visibility <span class="synced-tag">synced</span></div>
+      <div class="admin-page-list" id="adminPageList"></div>
+    </div>
+
+    <!-- PROTECTION -->
+    <div class="admin-section">
+      <div class="admin-section-label"><i class="fas fa-lock"></i>Protection</div>
+      <div class="admin-toggle-row">
+        <div class="admin-toggle-icon"><i class="fas fa-eye-slash"></i></div>
+        <div class="admin-toggle-info"><div class="admin-toggle-name">Anti-Inspect</div><div class="admin-toggle-desc">block devtools & right-click</div></div>
+        <label class="toggle-sw"><input type="checkbox" id="toggleAntiInspect" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
+      <div class="admin-toggle-row">
+        <div class="admin-toggle-icon"><i class="fas fa-key"></i></div>
+        <div class="admin-toggle-info"><div class="admin-toggle-name">Download Password</div><div class="admin-toggle-desc">require PW to download</div></div>
+        <label class="toggle-sw"><input type="checkbox" id="toggleDownloadPw" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
+    </div>
+
+    <!-- QUICK ACTIONS -->
+    <div class="admin-section">
+      <div class="admin-section-label"><i class="fas fa-bolt"></i>Quick Actions</div>
+      <div class="admin-input-row">
+        <button class="admin-action-btn" id="adminReload"><i class="fas fa-rotate-right"></i>Reload Page</button>
+        <button class="admin-action-btn" id="adminReset"><i class="fas fa-arrow-rotate-left"></i>Reset Settings</button>
+      </div>
+      <button class="admin-action-btn" id="adminLockout" style="width:100%;"><i class="fas fa-lock"></i>&nbsp; Lock Admin &amp; Close</button>
+    </div>
+
+    <!-- DANGER ZONE -->
+    <div class="admin-section">
+      <div class="admin-section-label"><i class="fas fa-skull"></i>Danger Zone</div>
+      <div class="danger-zone" style="display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:.66em;color:rgba(248,113,113,.6);font-family:'DM Mono',monospace;">These actions affect ALL users and cannot be undone.</div>
+        <div class="admin-input-row">
+          <button class="admin-action-btn danger" id="wipeNotif"><i class="fas fa-bell-slash"></i>Wipe Banner</button>
+          <button class="admin-action-btn danger" id="wipeCSS"><i class="fas fa-code"></i>Wipe CSS</button>
+        </div>
+        <button class="admin-action-btn danger" id="wipeAll" style="width:100%;"><i class="fas fa-fire"></i>&nbsp; Nuke All Firebase Data</button>
+      </div>
+    </div>
+
+  </div>
+  <div class="admin-footer">
+    <span>COSMIC ADMIN v3.1 · POLLS + FB SYNC</span>
+    <span class="admin-session-time" id="footerTime">session: 0m 0s</span>
+  </div>
+</div>
+
+<!-- PASSWORD MODAL -->
+<div class="modal-overlay" id="pwOverlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title accent"><i class="fas fa-lock"></i> DOWNLOAD PASSWORD</div>
+      <div class="modal-desc">This file is protected. Enter the password to download.</div>
+    </div>
+    <input class="modal-input" id="pwInput" type="password" placeholder="Enter password…" autocomplete="off">
+    <div class="modal-error" id="pwError"><i class="fas fa-circle-xmark"></i> Incorrect password</div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="pwCancel">Cancel</button>
+      <button class="btn-primary" id="pwConfirm"><i class="fas fa-download"></i>&nbsp; Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN AUTH MODAL -->
+<div class="modal-overlay" id="adminOverlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title admin-color"><i class="fas fa-shield-halved"></i> ADMIN ACCESS</div>
+      <div class="modal-desc">Enter the admin passphrase to unlock the control center.</div>
+    </div>
+    <input class="modal-input admin-input" id="adminInput" type="password" placeholder="Passphrase…" autocomplete="off">
+    <div class="modal-error" id="adminError"><i class="fas fa-circle-xmark"></i> Invalid passphrase</div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="adminCancel">Cancel</button>
+      <button class="btn-primary admin-primary" id="adminConfirm"><i class="fas fa-unlock"></i>&nbsp; Unlock</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+//   PAGE MAP
+// ════════════════════════════════════════════
+const PAGES = {
+  home:    { url:'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Home2.html',             label:'HOME',        icon:'fa-house' },
+  games:   { url:'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/games2.html',            label:'GAMES',       icon:'fa-gamepad' },
+  chat:    { url:'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/chat.html',             label:'CHAT',        icon:'fa-comments' },
+  code:    { url:'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Apps/Code-editor.html', label:'CODE EDITOR', icon:'fa-code' },
+  updates: { url:'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Upadatelog.html',       label:'UPDATE LOG',  icon:'fa-file-lines' },
+  legal:   { url:'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Legalstuff.html',       label:'LEGAL',       icon:'fa-scale-balanced' },
+  dmca:    { url:'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/DMCA.html',              label:'DMCA',        icon:'fa-copyright' },
+  suggest: { url:'https://cdn.jsdelivr.net/gh/Shazam123abc/cosmic-site@main/Suggest.html',           label:'SUGGESTIONS', icon:'fa-lightbulb' },
+};
+
+let currentPage = null;
+let visitCount  = 0;
+const sessionStart = Date.now();
+window._isAdmin = false;
+
+const frame    = document.getElementById('mainFrame');
+const splash   = document.getElementById('splash');
+const loadOver = document.getElementById('loadOverlay');
+const loadBar  = document.getElementById('loadBar');
+const loadText = document.getElementById('loadText');
+const tbName   = document.getElementById('tbName');
+const tbStat   = document.getElementById('tbStatus');
+const tbStatTx = document.getElementById('tbStatusText');
+
+// ── Toast ──
+let toastTimer;
+function showToast(msg, type='') {
+  const t = document.getElementById('adminToast');
+  t.textContent = msg;
+  t.className = 'admin-toast show' + (type ? ' '+type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── Firebase sync ──
+function setSyncStatus(state) {
+  const el = document.getElementById('tbSync');
+  const tx = document.getElementById('tbSyncText');
+  el.className = 'tb-sync ' + state;
+  tx.textContent = state === 'synced' ? 'synced' : state === 'syncing' ? 'syncing' : 'db';
+}
+function flashSync() {
+  setSyncStatus('syncing');
+  setTimeout(() => setSyncStatus('synced'), 700);
+}
+document.addEventListener('fb-ready', () => setSyncStatus('synced'));
+
+function setStatus(state, text) {
+  tbStat.className = 'tb-status ' + state;
+  tbStatTx.textContent = text;
+}
+
+// ════════════════════════════════════════════
+//   NAVIGATION
+// ════════════════════════════════════════════
+async function navigate(pageKey) {
+  if (pageKey === currentPage) return;
+  currentPage = pageKey;
+  visitCount++;
+  const page = PAGES[pageKey];
+  tbName.textContent = page.label;
+  setStatus('loading', 'loading...');
+  document.querySelectorAll('.sb-btn[data-page]').forEach(b =>
+    b.classList.toggle('active', b.dataset.page === pageKey)
+  );
+  splash.classList.add('hide');
+  loadOver.classList.add('show');
+  loadBar.classList.add('show');
+  frame.classList.remove('loaded');
+  loadText.textContent = `LOADING ${page.label}...`;
+  updateAdminStats();
+  try {
+    const res = await fetch(page.url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    let html = await res.text();
+    const base = page.url.substring(0, page.url.lastIndexOf('/') + 1);
+    const lsPoly = `<script>(function(){var s={};var l={getItem:function(k){return s.hasOwnProperty(k)?s[k]:null;},setItem:function(k,v){s[k]=String(v);},removeItem:function(k){delete s[k];},clear:function(){s={};},key:function(i){return Object.keys(s)[i]||null;},get length(){return Object.keys(s).length;}};try{localStorage.getItem('_t');}catch(e){Object.defineProperty(window,'localStorage',{value:l,writable:false});Object.defineProperty(window,'sessionStorage',{value:l,writable:false});}})();<\/script>`;
+    html = html.replace(/<head([^>]*)>/i, `<head$1><base href="${base}">${lsPoly}`);
+    const blob = new Blob([html], {type:'text/html'});
+    const blobUrl = URL.createObjectURL(blob);
+    frame.onload = () => {
+      loadOver.classList.remove('show');
+      loadBar.classList.remove('show');
+      frame.classList.add('loaded');
+      setStatus('ok', 'loaded ✓');
+      URL.revokeObjectURL(blobUrl);
+      const zoom = document.getElementById('frameZoom').value;
+      applyZoom(zoom);
+    };
+    frame.src = blobUrl;
+  } catch(err) {
+    loadOver.classList.remove('show');
+    loadBar.classList.remove('show');
+    setStatus('error', 'error ✗');
+    const errHtml = `<html><body style="background:#080a12;color:rgba(255,255,255,.4);font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:14px;"><div style="font-size:2.5em;color:#ff6b35;">⚠</div><div style="font-size:.95em;">${page.label} failed to load</div><div style="font-size:.78em;opacity:.5;">${err.message}</div></body></html>`;
+    const b = new Blob([errHtml],{type:'text/html'});
+    frame.src = URL.createObjectURL(b);
+    frame.classList.add('loaded');
+  }
+}
+
+document.querySelectorAll('.sb-btn[data-page]').forEach(btn =>
+  btn.addEventListener('click', () => navigate(btn.dataset.page))
+);
+document.querySelectorAll('.splash-card[data-page]').forEach(c =>
+  c.addEventListener('click', () => navigate(c.dataset.page))
+);
+document.getElementById('reloadBtn').addEventListener('click', () => {
+  if (!currentPage) return;
+  const p = currentPage; currentPage = null; navigate(p);
+});
+
+// Sidebar toggle
+document.getElementById('toggleBtn').addEventListener('click', () => {
+  if (document.getElementById('toggleSidebarLock').checked) return;
+  document.getElementById('sidebar').classList.add('slim');
+  document.getElementById('sidebarOuter').classList.add('collapsed');
+});
+document.getElementById('reopenBtn').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.remove('slim');
+  document.getElementById('sidebarOuter').classList.remove('collapsed');
+});
+
+// ════════════════════════════════════════════
+//   CURSOR
+// ════════════════════════════════════════════
+const cur  = document.getElementById('cursor');
+const ring = document.getElementById('cursorRing');
+let mx=0,my=0,rx=0,ry=0;
+window._cursorEnabled = true;
+document.addEventListener('mousemove', e => {
+  if (!window._cursorEnabled) return;
+  mx=e.clientX; my=e.clientY;
+  cur.style.left=mx+'px'; cur.style.top=my+'px';
+});
+(function loop(){
+  rx+=(mx-rx)*.12; ry+=(my-ry)*.12;
+  ring.style.left=rx+'px'; ring.style.top=ry+'px';
+  requestAnimationFrame(loop);
+})();
+document.addEventListener('mouseover', e => {
+  if (e.target.closest('button,a,.splash-card,.sb-btn,.admin-action-btn,.toggle-sw,.color-swatch,.admin-select,.poll-opt-btn')) {
+    cur.classList.add('big'); ring.classList.add('big');
+  } else {
+    cur.classList.remove('big'); ring.classList.remove('big');
+  }
+});
+
+// ════════════════════════════════════════════
+//   CANVAS BG
+// ════════════════════════════════════════════
+const cv  = document.getElementById('bgCanvas');
+const ctx = cv.getContext('2d');
+let W = cv.width  = window.innerWidth;
+let H = cv.height = window.innerHeight;
+window._particlesEnabled = true;
+const pts = Array.from({length:100},()=>({
+  x:Math.random()*W, y:Math.random()*H,
+  s:Math.random()*1.8+.2,
+  vx:(Math.random()-.5)*.18, vy:(Math.random()-.5)*.18,
+  o:Math.random()*.3+.04, td:Math.random()*.004+.002, tdir:1,
+  hue: Math.random()<.15 ? 210 : 22
+}));
+function drawBg() {
+  ctx.clearRect(0,0,W,H);
+  if (window._particlesEnabled) {
+    pts.forEach(p=>{
+      p.o+=p.td*p.tdir; if(p.o>.5||p.o<.03)p.tdir*=-1;
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0; if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.s,0,Math.PI*2);
+      ctx.fillStyle=p.hue===22?`rgba(255,107,53,${p.o})`:`rgba(88,101,242,${p.o*.6})`;
+      ctx.fill();
+    });
+  }
+  requestAnimationFrame(drawBg);
+}
+drawBg();
+window.addEventListener('resize',()=>{W=cv.width=window.innerWidth;H=cv.height=window.innerHeight;});
+
+// ════════════════════════════════════════════
+//   ANTI-INSPECT
+// ════════════════════════════════════════════
+let antiInspectOn = true;
+function applyAntiInspect(on) { antiInspectOn = on; }
+document.addEventListener('contextmenu', e => { if(antiInspectOn) e.preventDefault(); });
+document.addEventListener('keydown', e => {
+  if (!antiInspectOn) return;
+  if (e.key==='F12'||(e.ctrlKey&&e.shiftKey&&['I','J','C','K'].includes(e.key.toUpperCase()))||(e.ctrlKey&&e.key.toUpperCase()==='U')||(e.ctrlKey&&e.key.toUpperCase()==='S')){
+    e.preventDefault();e.stopPropagation();return false;
+  }
+});
+(function devCheck(){
+  function check(){if(antiInspectOn&&(window.outerHeight-window.innerHeight)>200){document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#080a12;color:rgba(255,255,255,.3);font-family:monospace;flex-direction:column;gap:12px;"><span style="font-size:2em">🚫</span>Access denied.</div>';}}
+  setInterval(check,900);
+})();
+setInterval(function(){(function(){})['constructor']('debugger')();},80);
+
+// ════════════════════════════════════════════
+//   DOWNLOAD PASSWORD
+// ════════════════════════════════════════════
+const _dK = [86,72,86,121,100,71,120,108,99,119,61,61];
+const _getDP = () => atob(String.fromCharCode(..._dK));
+let downloadPwEnabled = true;
+let _pendingUrl = null, _pendingName = null;
+const pwOverlay = document.getElementById('pwOverlay');
+const pwInput   = document.getElementById('pwInput');
+const pwError   = document.getElementById('pwError');
+
+document.getElementById('downloadBtn').addEventListener('click', () => {
+  if (!currentPage) return;
+  const page = PAGES[currentPage];
+  _pendingUrl  = page.url;
+  _pendingName = page.label.toLowerCase().replace(/\s+/g,'-') + '.html';
+  if (downloadPwEnabled) {
+    pwInput.value=''; pwError.classList.remove('show');
+    pwOverlay.classList.add('show');
+    setTimeout(()=>pwInput.focus(),120);
+  } else { doDownload(); }
+});
+document.getElementById('pwConfirm').addEventListener('click', tryDownload);
+pwInput.addEventListener('keydown', e => { if(e.key==='Enter') tryDownload(); });
+document.getElementById('pwCancel').addEventListener('click', ()=>{ pwOverlay.classList.remove('show'); _pendingUrl=null; });
+pwOverlay.addEventListener('click', e => { if(e.target===pwOverlay){ pwOverlay.classList.remove('show'); _pendingUrl=null; }});
+function tryDownload() {
+  if (pwInput.value !== _getDP()) { pwError.classList.add('show'); pwInput.focus(); pwInput.select(); return; }
+  pwError.classList.remove('show'); pwOverlay.classList.remove('show'); doDownload();
+}
+async function doDownload() {
+  try {
+    const res = await fetch(_pendingUrl);
+    if (!res.ok) throw new Error('HTTP '+res.status);
+    const html = await res.text();
+    const blob = new Blob([html],{type:'text/html'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = _pendingName; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+  } catch(err) { alert('Download failed: '+err.message); }
+  _pendingUrl = null;
+}
+
+// ════════════════════════════════════════════
+//   ADMIN SYSTEM
+// ════════════════════════════════════════════
+const _aK = [97,87,120,112,97,50,86,116,101,88,82,49,99,110,82,115,90,88,77,61];
+const _getAP = () => atob(String.fromCharCode(..._aK));
+
+let adminUnlocked = false;
+let logoClickCount = 0;
+let logoClickTimer = null;
+
+const adminOverlay = document.getElementById('adminOverlay');
+const adminInput   = document.getElementById('adminInput');
+const adminError   = document.getElementById('adminError');
+const adminDrawer  = document.getElementById('adminDrawer');
+const adminNavBtn  = document.getElementById('adminNavBtn');
+const adminTopBtn  = document.getElementById('adminTopBtn');
+
+document.getElementById('sbLogo').addEventListener('click', () => {
+  const logo    = document.getElementById('sbLogo');
+  const counter = document.getElementById('logoCounter');
+  logo.classList.add('logo-clicked');
+  setTimeout(()=>logo.classList.remove('logo-clicked'),300);
+  logoClickCount++;
+  if (logoClickCount>=2&&logoClickCount<5){ counter.textContent=logoClickCount; counter.classList.add('show'); }
+  if (logoClickTimer) clearTimeout(logoClickTimer);
+  logoClickTimer = setTimeout(()=>{ logoClickCount=0; counter.classList.remove('show'); }, 3000);
+  if (logoClickCount>=5) {
+    logoClickCount=0; counter.classList.remove('show');
+    adminUnlocked ? openAdminDrawer() : openAdminAuth();
+  }
+});
+
+function openAdminAuth() {
+  adminInput.value=''; adminError.classList.remove('show');
+  adminOverlay.classList.add('show');
+  setTimeout(()=>adminInput.focus(),120);
+}
+document.getElementById('adminConfirm').addEventListener('click', tryAdminUnlock);
+adminInput.addEventListener('keydown', e => { if(e.key==='Enter') tryAdminUnlock(); });
+document.getElementById('adminCancel').addEventListener('click', ()=>adminOverlay.classList.remove('show'));
+adminOverlay.addEventListener('click', e => { if(e.target===adminOverlay) adminOverlay.classList.remove('show'); });
+
+function tryAdminUnlock() {
+  if (adminInput.value !== _getAP()) { adminError.classList.add('show'); adminInput.focus(); adminInput.select(); return; }
+  adminError.classList.remove('show'); adminOverlay.classList.remove('show');
+  adminUnlocked = true;
+  window._isAdmin = true;
+  adminNavBtn.style.display=''; adminTopBtn.style.display='';
+  adminNavBtn.classList.add('admin-active');
+  cur.classList.add('admin-mode'); ring.classList.add('admin-mode');
+  buildAdminPageList();
+  openAdminDrawer();
+  showToast('Admin unlocked 🛡️', 'success');
+}
+
+function openAdminDrawer() { if(!adminUnlocked) return; adminDrawer.classList.add('open'); updateAdminStats(); }
+function closeAdminDrawer() { adminDrawer.classList.remove('open'); }
+function lockAdmin() {
+  adminUnlocked=false; window._isAdmin=false;
+  adminNavBtn.style.display='none'; adminTopBtn.style.display='none';
+  adminNavBtn.classList.remove('admin-active');
+  cur.classList.remove('admin-mode'); ring.classList.remove('admin-mode');
+  closeAdminDrawer();
+}
+
+document.getElementById('adminDrawerClose').addEventListener('click', closeAdminDrawer);
+document.getElementById('adminNavBtn').addEventListener('click', ()=>{ if(adminUnlocked) openAdminDrawer(); });
+document.getElementById('adminTopBtn').addEventListener('click', ()=>{ if(adminUnlocked) openAdminDrawer(); });
+document.getElementById('adminLockout').addEventListener('click', lockAdmin);
+
+function updateAdminStats() {
+  document.getElementById('statVisits').textContent = visitCount;
+  const ua = navigator.userAgent;
+  const browser = ua.includes('Chrome')?'Chrome':ua.includes('Firefox')?'Firefox':ua.includes('Safari')?'Safari':'Other';
+  document.getElementById('statUA').textContent = browser;
+  document.getElementById('statPage').textContent = currentPage ? currentPage.toUpperCase() : '—';
+}
+setInterval(()=>{
+  const elapsed=Math.floor((Date.now()-sessionStart)/1000);
+  const m=Math.floor(elapsed/60),s=elapsed%60;
+  const el=document.getElementById('statTime');
+  const ft=document.getElementById('footerTime');
+  if(el) el.textContent=`${m}m`;
+  if(ft) ft.textContent=`session: ${m}m ${s}s`;
+},1000);
+
+// ════════════════════════════════════════════
+//   FRAME ZOOM
+// ════════════════════════════════════════════
+function applyZoom(val) {
+  const pct = val / 100;
+  frame.style.transform = `scale(${pct})`;
+  frame.style.transformOrigin = 'top left';
+  frame.style.width  = `${100 / pct}%`;
+  frame.style.height = `${100 / pct}%`;
+}
+document.getElementById('frameZoom').addEventListener('input', function() {
+  document.getElementById('zoomVal').textContent = this.value + '%';
+  applyZoom(this.value);
+});
+
+// ════════════════════════════════════════════
+//   ADMIN CONTROLS → FIREBASE
+// ════════════════════════════════════════════
+function fbWrite(path, val) {
+  if (window._fbSet) { flashSync(); window._fbSet(path, val); }
+}
+
+document.getElementById('colorAccent').addEventListener('input', function(){
+  const val = this.value;
+  document.documentElement.style.setProperty('--accent', val);
+  document.getElementById('accentVal').textContent = val;
+  this.closest('.color-swatch').style.background = val;
+  fbWrite('appearance/accent', val);
+});
+
+document.getElementById('colorBg').addEventListener('input', function(){
+  const val = this.value;
+  document.documentElement.style.setProperty('--bg', val);
+  document.documentElement.style.setProperty('--surface', val);
+  document.getElementById('bgColorVal').textContent = val;
+  this.closest('.color-swatch').style.background = val;
+  fbWrite('appearance/bgColor', val);
+});
+
+document.getElementById('toggleParticles').addEventListener('change', function(){
+  window._particlesEnabled = this.checked;
+  if(!this.checked) ctx.clearRect(0,0,W,H);
+  fbWrite('appearance/particles', this.checked);
+  showToast(`Particles ${this.checked ? 'on' : 'off'}`);
+});
+
+document.getElementById('toggleCursor').addEventListener('change', function(){
+  window._cursorEnabled = this.checked;
+  cur.style.display  = this.checked ? '' : 'none';
+  ring.style.display = this.checked ? '' : 'none';
+  document.body.style.cursor = this.checked ? 'none' : 'auto';
+  fbWrite('appearance/cursor', this.checked);
+  showToast(`Custom cursor ${this.checked ? 'on' : 'off'}`);
+});
+
+document.getElementById('toggleOrbs').addEventListener('change', function(){
+  document.querySelectorAll('.orb').forEach(o => o.style.display = this.checked ? '' : 'none');
+  fbWrite('appearance/orbs', this.checked);
+  showToast(`Orbs ${this.checked ? 'on' : 'off'}`);
+});
+
+document.getElementById('toggleGrayscale').addEventListener('change', function(){
+  frame.style.filter = this.checked ? 'grayscale(1)' : '';
+  fbWrite('appearance/grayscale', this.checked);
+  showToast(`Grayscale ${this.checked ? 'on' : 'off'}`);
+});
+
+document.getElementById('toggleBlurContent').addEventListener('change', function(){
+  const wrap = document.querySelector('.frame-wrap');
+  const existing = wrap.querySelector('.blur-shield');
+  if (this.checked && !existing) {
+    const shield = document.createElement('div');
+    shield.className = 'blur-shield';
+    shield.innerHTML = '<div class="blur-msg"><i class="fas fa-eye-slash"></i><span>Content hidden by admin</span></div>';
+    wrap.appendChild(shield);
+  } else if (!this.checked && existing) {
+    existing.remove();
+  }
+  fbWrite('appearance/blurContent', this.checked);
+  showToast(`Content ${this.checked ? 'hidden' : 'visible'}`);
+});
+
+document.getElementById('toggleAntiInspect').addEventListener('change', function(){ applyAntiInspect(this.checked); showToast(`Anti-inspect ${this.checked ? 'on' : 'off'}`); });
+document.getElementById('toggleDownloadPw').addEventListener('change', function(){ downloadPwEnabled = this.checked; showToast(`Download PW ${this.checked ? 'on' : 'off'}`); });
+
+document.getElementById('toggleTopbar').addEventListener('change', function(){
+  document.getElementById('topbar').classList.toggle('hidden-bar', this.checked);
+  showToast(`Topbar ${this.checked ? 'hidden' : 'shown'}`);
+});
+
+document.getElementById('toggleSidebarLock').addEventListener('change', function(){
+  showToast(`Sidebar ${this.checked ? 'locked' : 'unlocked'}`);
+});
+
+document.getElementById('forceNavBtn').addEventListener('click', () => {
+  const page = document.getElementById('forceNavSelect').value;
+  navigate(page);
+  if (window._fbSet) {
+    flashSync();
+    window._fbSet('forceNav', { page, active: true });
+    setTimeout(() => window._fbSet('forceNav', { page, active: false }), 1500);
+  }
+  showToast(`Forced navigate → ${page}`, 'warn');
+});
+
+document.getElementById('customCSSInput').addEventListener('focus', function(){ this.dataset.focused = '1'; });
+document.getElementById('customCSSInput').addEventListener('blur',  function(){ delete this.dataset.focused; });
+
+document.getElementById('cssApply').addEventListener('click', () => {
+  const css = document.getElementById('customCSSInput').value;
+  let styleEl = document.getElementById('adminCustomStyle');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = 'adminCustomStyle';
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = css;
+  fbWrite('customCSS', css);
+  showToast('CSS injected ✓', 'success');
+});
+
+document.getElementById('cssClear').addEventListener('click', () => {
+  document.getElementById('customCSSInput').value = '';
+  const styleEl = document.getElementById('adminCustomStyle');
+  if (styleEl) styleEl.textContent = '';
+  fbWrite('customCSS', '');
+  showToast('CSS cleared', 'danger');
+});
+
+document.getElementById('notifSend').addEventListener('click', () => {
+  const msg = document.getElementById('notifInput').value.trim();
+  if (!msg) return;
+  if (window._fbSet) {
+    flashSync();
+    window._fbSet('notification', { text: msg, visible: true });
+  } else {
+    document.getElementById('notifText').textContent = msg;
+    document.getElementById('notifBanner').classList.add('show');
+  }
+  showToast('Banner sent 📣', 'success');
+});
+document.getElementById('notifClear').addEventListener('click', () => {
+  if (window._fbSet) { flashSync(); window._fbSet('notification', { text: '', visible: false }); }
+  else { document.getElementById('notifBanner').classList.remove('show'); }
+  document.getElementById('notifInput').value = '';
+  showToast('Banner cleared');
+});
+document.getElementById('notifClose').addEventListener('click', () => {
+  document.getElementById('notifBanner').classList.remove('show');
+});
+
+document.getElementById('adminReload').addEventListener('click', ()=>{
+  if(!currentPage) return;
+  const p=currentPage; currentPage=null; navigate(p);
+  showToast('Page reloaded 🔄');
+});
+document.getElementById('adminReset').addEventListener('click', ()=>{
+  const defaults = { accent: '#ff6b35', bgColor: '#080a12', particles: true, cursor: true, orbs: true, grayscale: false, blurContent: false };
+  document.documentElement.style.setProperty('--accent','#ff6b35');
+  document.documentElement.style.setProperty('--bg','#080a12');
+  document.documentElement.style.setProperty('--surface','#080a12');
+  document.getElementById('colorAccent').value='#ff6b35';
+  document.getElementById('accentVal').textContent='#ff6b35';
+  document.getElementById('colorBg').value='#080a12';
+  document.getElementById('bgColorVal').textContent='#080a12';
+  document.getElementById('toggleParticles').checked=true; window._particlesEnabled=true;
+  document.getElementById('toggleCursor').checked=true; window._cursorEnabled=true;
+  cur.style.display=''; ring.style.display=''; document.body.style.cursor='none';
+  document.getElementById('toggleOrbs').checked=true;
+  document.querySelectorAll('.orb').forEach(o=>o.style.display='');
+  document.getElementById('toggleGrayscale').checked=false; frame.style.filter='';
+  document.getElementById('toggleBlurContent').checked=false;
+  document.querySelector('.blur-shield')?.remove();
+  document.getElementById('toggleAntiInspect').checked=true; antiInspectOn=true;
+  document.getElementById('toggleDownloadPw').checked=true; downloadPwEnabled=true;
+  document.getElementById('toggleTopbar').checked=false; document.getElementById('topbar').classList.remove('hidden-bar');
+  document.getElementById('toggleSidebarLock').checked=false;
+  document.getElementById('frameZoom').value=100; document.getElementById('zoomVal').textContent='100%'; applyZoom(100);
+  if (window._fbSet) {
+    flashSync();
+    window._fbSet('appearance', defaults);
+    window._fbSet('notification', { text: '', visible: false });
+    window._fbSet('customCSS', '');
+  }
+  showToast('Settings reset ✓', 'success');
+});
+
+document.getElementById('wipeNotif').addEventListener('click', () => {
+  if (!confirm('Wipe the banner for all users?')) return;
+  fbWrite('notification', { text: '', visible: false });
+  document.getElementById('notifInput').value = '';
+  showToast('Banner wiped', 'danger');
+});
+document.getElementById('wipeCSS').addEventListener('click', () => {
+  if (!confirm('Clear all injected CSS for everyone?')) return;
+  fbWrite('customCSS', '');
+  document.getElementById('customCSSInput').value = '';
+  const styleEl = document.getElementById('adminCustomStyle');
+  if (styleEl) styleEl.textContent = '';
+  showToast('CSS wiped', 'danger');
+});
+document.getElementById('wipeAll').addEventListener('click', () => {
+  if (!confirm('⚠ NUKE ALL FIREBASE DATA? This resets everything for all users. Cannot be undone!')) return;
+  if (!confirm('Are you absolutely sure?')) return;
+  if (window._fbSet) {
+    flashSync();
+    window._fbSet('notification', { text: '', visible: false });
+    window._fbSet('maintenance', false);
+    window._fbSet('customCSS', '');
+    window._fbSet('forceNav', { page: 'home', active: false });
+    window._fbSet('poll', { active: false, question: '', options: [], votes: {}, id: '' });
+    const pageDefaults = {};
+    Object.keys(PAGES).forEach(k => pageDefaults[k] = true);
+    window._fbSet('pages', pageDefaults);
+    window._fbSet('appearance', { accent: '#ff6b35', bgColor: '#080a12', particles: true, cursor: true, orbs: true, grayscale: false, blurContent: false });
+  }
+  showToast('Firebase wiped 💥', 'danger');
+});
+
+// ════════════════════════════════════════════
+//   PAGE LIST
+// ════════════════════════════════════════════
+const pageHidden = {};
+
+function buildAdminPageList() {
+  const list = document.getElementById('adminPageList');
+  list.innerHTML = '';
+  Object.entries(PAGES).forEach(([key, page])=>{
+    const hidden = pageHidden[key] || false;
+    const row = document.createElement('div');
+    row.className = 'admin-page-item';
+    row.dataset.key = key;
+    row.innerHTML = `
+      <i class="fas ${page.icon} admin-page-icon"></i>
+      <span class="admin-page-name">${page.label}</span>
+      <span class="admin-page-vis" data-key="${key}" title="Toggle visibility">
+        <i class="fas ${hidden ? 'fa-eye-slash' : 'fa-eye'}" ${hidden ? 'style="color:rgba(248,113,113,.6)"' : ''}></i>
+      </span>`;
+    list.appendChild(row);
+  });
+  list.addEventListener('click', e => {
+    const vis = e.target.closest('.admin-page-vis');
+    if (!vis) return;
+    const key = vis.dataset.key;
+    pageHidden[key] = !pageHidden[key];
+    const nowVisible = !pageHidden[key];
+    const row = vis.closest('.admin-page-item');
+    row.classList.remove('syncing-row');
+    void row.offsetWidth;
+    row.classList.add('syncing-row');
+    if (window._fbSet) { flashSync(); window._fbSet('pages/' + key, nowVisible); }
+    else {
+      const btn = document.querySelector(`.sb-btn[data-page="${key}"]`);
+      if (btn) btn.style.display = nowVisible ? '' : 'none';
+      const icon = vis.querySelector('i');
+      if (icon) { icon.className = nowVisible ? 'fas fa-eye' : 'fas fa-eye-slash'; icon.style.color = nowVisible ? '' : 'rgba(248,113,113,.6)'; }
+    }
+    showToast(`${PAGES[key].label} ${nowVisible ? 'shown' : 'hidden'}`);
+  });
+}
+
+document.addEventListener('fb-ready', () => {
+  const checkHiddenFromUI = () => {
+    Object.keys(PAGES).forEach(key => {
+      const btn = document.querySelector(`.sb-btn[data-page="${key}"]`);
+      if (btn) pageHidden[key] = btn.style.display === 'none';
+    });
+  };
+  setInterval(checkHiddenFromUI, 2000);
+});
+
+// ════════════════════════════════════════════
+//   POLL SYSTEM
+// ════════════════════════════════════════════
+let _currentPollId = null;
+
+// Helper: Firebase may return arrays OR objects for poll.options / poll.votes
+function toArray(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  return Object.values(val);
+}
+function toObj(val) {
+  if (!val) return {};
+  if (typeof val === 'object' && !Array.isArray(val)) return val;
+  const obj = {};
+  val.forEach((v, i) => { obj[i] = v; });
+  return obj;
+}
+
+// ─── User poll widget ───
+function renderPollWidget(poll) {
+  const widget   = document.getElementById('pollWidget');
+  const qEl      = document.getElementById('pollWidgetQuestion');
+  const optsEl   = document.getElementById('pollWidgetOptions');
+  const resEl    = document.getElementById('pollWidgetResults');
+  const totalEl  = document.getElementById('pollTotalVotes');
+  const votedBdg = document.getElementById('pollVotedBadge');
+
+  if (!poll || !poll.active || !poll.question) {
+    widget.classList.remove('show');
+    updateAdminPollStatus(poll);
+    return;
+  }
+
+  // If user dismissed this poll session, don't re-show unless it's a new poll
+  const dismissed = sessionStorage.getItem('poll-dismissed-' + poll.id);
+  if (dismissed && poll.id === _currentPollId) { updateAdminPollStatus(poll); return; }
+
+  // New poll → clear dismissed state so it shows fresh
+  if (poll.id !== _currentPollId) {
+    _currentPollId = poll.id;
+  }
+
+  const options    = toArray(poll.options).filter(Boolean);
+  const votesObj   = toObj(poll.votes);
+  const totalVotes = Object.values(votesObj).reduce((a, b) => a + (b || 0), 0);
+  const votedKey   = sessionStorage.getItem('poll-voted-' + poll.id);
+
+  qEl.textContent = poll.question;
+  totalEl.textContent = `${totalVotes} vote${totalVotes !== 1 ? 's' : ''}`;
+
+  if (votedKey !== null) {
+    // Show results
+    optsEl.style.display   = 'none';
+    resEl.style.display    = 'flex';
+    votedBdg.style.display = 'flex';
+    renderResultBars(options, votesObj, totalVotes, votedKey, resEl);
+  } else {
+    // Show voteable options
+    optsEl.style.display   = 'flex';
+    resEl.style.display    = 'none';
+    votedBdg.style.display = 'none';
+    optsEl.innerHTML = '';
+    options.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'poll-opt-btn';
+      btn.textContent = opt;
+      btn.addEventListener('click', () => castVote(poll, i, options, votesObj));
+      optsEl.appendChild(btn);
+    });
+  }
+
+  if (!dismissed) widget.classList.add('show');
+  updateAdminPollStatus(poll, totalVotes);
+  if (window._isAdmin) renderAdminLiveResults(options, votesObj, totalVotes);
+}
+
+function renderResultBars(options, votesObj, totalVotes, myVotedKey, container) {
+  container.innerHTML = '';
+  const maxVotes = Math.max(...options.map((_, i) => votesObj[i] || 0), 1);
+  options.forEach((opt, i) => {
+    const v       = votesObj[i] || 0;
+    const pct     = totalVotes > 0 ? Math.round((v / totalVotes) * 100) : 0;
+    const isWinner = v === maxVotes && v > 0;
+    const isMine   = String(i) === String(myVotedKey);
+    const item = document.createElement('div');
+    item.className = 'poll-result-item';
+    item.innerHTML = `
+      <div class="poll-result-header">
+        <span class="poll-result-label">
+          ${isMine ? '<span class="my-vote-dot"></span>' : ''}${opt}
+        </span>
+        <span class="poll-result-pct">${pct}%</span>
+      </div>
+      <div class="poll-bar-track">
+        <div class="poll-bar-fill${isWinner ? ' winner' : ''}" style="width:0%" data-target="${pct}"></div>
+      </div>`;
+    container.appendChild(item);
+    // Animate bar width
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        item.querySelector('.poll-bar-fill').style.width = pct + '%';
+      });
+    });
+  });
+}
+
+async function castVote(poll, optionIndex, options, currentVotes) {
+  // Mark as voted immediately to prevent double-tap
+  sessionStorage.setItem('poll-voted-' + poll.id, optionIndex);
+
+  // Atomic increment via Firebase server value
+  if (window._fbIncrement) {
+    flashSync();
+    window._fbIncrement(`poll/votes/${optionIndex}`);
+  }
+
+  // Optimistic update in UI
+  const optimisticVotes = { ...currentVotes };
+  optimisticVotes[optionIndex] = (optimisticVotes[optionIndex] || 0) + 1;
+  const total = Object.values(optimisticVotes).reduce((a, b) => a + b, 0);
+
+  document.getElementById('pollTotalVotes').textContent = `${total} vote${total !== 1 ? 's' : ''}`;
+  document.getElementById('pollWidgetOptions').style.display  = 'none';
+  document.getElementById('pollWidgetResults').style.display  = 'flex';
+  document.getElementById('pollVotedBadge').style.display = 'flex';
+  renderResultBars(options, optimisticVotes, total, optionIndex, document.getElementById('pollWidgetResults'));
+  showToast('Vote cast! 🗳️', 'success');
+}
+
+// Dismiss poll widget for this session
+document.getElementById('pollWidgetClose').addEventListener('click', () => {
+  document.getElementById('pollWidget').classList.remove('show');
+  if (_currentPollId) sessionStorage.setItem('poll-dismissed-' + _currentPollId, '1');
+});
+
+// ─── Admin poll status bar ───
+function updateAdminPollStatus(poll, totalVotes) {
+  const statusEl = document.getElementById('adminPollStatus');
+  const textEl   = document.getElementById('adminPollStatus')?.querySelector('.poll-status-text');
+  const countEl  = document.getElementById('adminPollVoteCount');
+  if (!statusEl) return;
+  const active = poll && poll.active && poll.question;
+  statusEl.className = 'admin-poll-status' + (active ? ' active-status' : '');
+  if (textEl) textEl.textContent = active ? `Active: "${poll.question.substring(0,32)}${poll.question.length>32?'…':''}"` : 'No active poll';
+  if (countEl) countEl.textContent = active && totalVotes !== undefined ? `${totalVotes} vote${totalVotes!==1?'s':''}` : '';
+}
+
+// ─── Admin live results ───
+function renderAdminLiveResults(options, votesObj, totalVotes) {
+  const wrap  = document.getElementById('adminLiveResults');
+  const list  = document.getElementById('adminResultsList');
+  const total = document.getElementById('adminResultsTotal');
+  if (!wrap) return;
+  wrap.classList.add('show');
+  list.innerHTML = '';
+  const maxVotes = Math.max(...options.map((_, i) => votesObj[i] || 0), 1);
+  options.forEach((opt, i) => {
+    const v     = votesObj[i] || 0;
+    const pct   = totalVotes > 0 ? Math.round((v / totalVotes) * 100) : 0;
+    const isTop = v === maxVotes && v > 0;
+    const row   = document.createElement('div');
+    row.className = 'admin-result-row';
+    row.innerHTML = `
+      <div class="admin-result-header">
+        <span class="admin-result-opt">${opt}</span>
+        <span class="admin-result-count">${v} (${pct}%)</span>
+      </div>
+      <div class="admin-result-bar-track">
+        <div class="admin-result-bar${isTop?' leader':''}" style="width:${pct}%;"></div>
+      </div>`;
+    list.appendChild(row);
+  });
+  if (total) total.textContent = `${totalVotes} total vote${totalVotes!==1?'s':''}`;
+}
+
+// ─── Admin: launch poll ───
+document.getElementById('pollLaunch').addEventListener('click', () => {
+  if (!adminUnlocked) return;
+  const question = document.getElementById('pollQuestion').value.trim();
+  if (!question) { showToast('Enter a question first!', 'danger'); return; }
+  const opts = Array.from(document.querySelectorAll('#pollOptionsWrap [data-opt]'))
+    .map(el => el.value.trim())
+    .filter(Boolean);
+  if (opts.length < 2) { showToast('Need at least 2 options!', 'danger'); return; }
+  const pollId = Date.now().toString();
+  const pollData = { active: true, question, options: opts, votes: {}, id: pollId };
+  if (window._fbSet) { flashSync(); window._fbSet('poll', pollData); }
+  // Clear previous dismiss for this new poll so admin can also see it
+  sessionStorage.removeItem('poll-dismissed-' + pollId);
+  document.getElementById('adminLiveResults').classList.add('show');
+  showToast('Poll launched 🗳️', 'success');
+});
+
+// ─── Admin: end poll ───
+document.getElementById('pollEnd').addEventListener('click', () => {
+  if (!adminUnlocked) return;
+  if (!_currentPollId) { showToast('No active poll', 'warn'); return; }
+  fbWrite('poll/active', false);
+  document.getElementById('pollWidget').classList.remove('show');
+  document.getElementById('adminLiveResults').classList.remove('show');
+  updateAdminPollStatus(null);
+  showToast('Poll ended ⛔', 'warn');
+});
+
+// ─── Admin: wipe poll data ───
+document.getElementById('pollWipe').addEventListener('click', () => {
+  if (!adminUnlocked) return;
+  if (!confirm('Wipe all poll data from Firebase?')) return;
+  fbWrite('poll', { active: false, question: '', options: [], votes: {}, id: '' });
+  document.getElementById('pollQuestion').value = '';
+  document.querySelectorAll('#pollOptionsWrap [data-opt]').forEach(el => el.value = '');
+  document.getElementById('pollWidget').classList.remove('show');
+  document.getElementById('adminLiveResults').classList.remove('show');
+  updateAdminPollStatus(null);
+  showToast('Poll data wiped', 'danger');
+});
+
+// Auto-load
+navigate('home');
+</script>
+</body>
+</html>
