@@ -1415,7 +1415,7 @@ function parseEntry(item, i) {
 }
 
 async function fetchGamesJson() {
-  const urls = [`https://cdn.jsdelivr.net/gh/${GITHUB_USER}/${GITHUB_REPO}@main/games.json`,`https://cdn.jsdelivr.net/gh/${GITHUB_USER}/${GITHUB_REPO}@latest/games.json`,`https://cdn.jsdelivr.net/gh/${GITHUB_USER}/${GITHUB_REPO}/games.json`];
+  const urls = [`https://cdn.statically.io/gh/${GITHUB_USER}/${GITHUB_REPO}/main/games.json`,`https://cdn.statically.io/gh/${GITHUB_USER}/${GITHUB_REPO}/main/games.json`,`https://cdn.statically.io/gh/${GITHUB_USER}/${GITHUB_REPO}/main/games.json`];
   let lastErr='';
   for (const url of urls) {
     try { const r=await fetch(url+'?t='+Date.now()); if(!r.ok) throw new Error('HTTP '+r.status); const data=await r.json(); const arr=Array.isArray(data)?data:(data.games||[]); if(arr.length>0) return arr; }
