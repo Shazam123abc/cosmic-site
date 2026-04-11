@@ -1415,13 +1415,13 @@ function parseEntry(item, i) {
 }
 
 async function fetchGamesJson() {
-  const urls = [`https://cdn.statically.io/gh/${GITHUB_USER}/${GITHUB_REPO}/main/games.json`,`https://cdn.statically.io/gh/${GITHUB_USER}/${GITHUB_REPO}/main/games.json`,`https://cdn.statically.io/gh/${GITHUB_USER}/${GITHUB_REPO}/main/games.json`];
+  const urls = [`https://cdn.statically.io/gh/${GITHUB_USER}/${GITHUB_REPO}/main/games2.json`,`https://cdn.statically.io/gh/${GITHUB_USER}/${GITHUB_REPO}/main/games2.json`,`https://cdn.statically.io/gh/${GITHUB_USER}/${GITHUB_REPO}/main/games2.json`];
   let lastErr='';
   for (const url of urls) {
     try { const r=await fetch(url+'?t='+Date.now()); if(!r.ok) throw new Error('HTTP '+r.status); const data=await r.json(); const arr=Array.isArray(data)?data:(data.games||[]); if(arr.length>0) return arr; }
     catch(e) { lastErr=e.message; }
   }
-  throw new Error('Could not load games.json. '+lastErr);
+  throw new Error('Could not load games2.json. '+lastErr);
 }
 
 async function init() {
