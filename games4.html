@@ -1407,21 +1407,21 @@ document.getElementById('pw-modal').addEventListener('click', function(e) {
 
 /* ════════════════════════════════════════
    DATA FETCH + INIT
-   FIX 2: Replaced http://cdn.statically.io URLs with https://cdn.jsdelivr.net
+   FIX 2: Replaced http://cdn.statically.io URLs with https://cdn.statically.io
    to fix Mixed Content blocks on Google Sites (HTTPS required)
 ════════════════════════════════════════ */
 function parseEntry(item, i) {
-  if (typeof item==='string') { const clean=cleanName(item); return {title:titleify(clean),path:`https://cdn.jsdelivr.net/gh/${GITHUB_USER}/${GITHUB_REPO}@main/${GAMES_FOLDER}/${clean}.html`,iconIdx:i}; }
+  if (typeof item==='string') { const clean=cleanName(item); return {title:titleify(clean),path:`https://cdn.statically.io/gh/${GITHUB_USER}/${GITHUB_REPO}@main/${GAMES_FOLDER}/${clean}.html`,iconIdx:i}; }
   const name=item.name||item.title||item.folder||'';
   const filePath=item.path||`${GAMES_FOLDER}/${name}.html`;
-  return {title:titleify(cleanName(name)),path:`https://cdn.jsdelivr.net/gh/${GITHUB_USER}/${GITHUB_REPO}@main/${filePath}`,iconIdx:i};
+  return {title:titleify(cleanName(name)),path:`https://cdn.statically.io/gh/${GITHUB_USER}/${GITHUB_REPO}@main/${filePath}`,iconIdx:i};
 }
 
 async function fetchGamesJson() {
-  // FIX 2: All URLs now use HTTPS via jsdelivr.net — no more Mixed Content errors
+  // FIX 2: All URLs now use HTTPS via statically.io — no more Mixed Content errors
   const urls = [
-    `https://cdn.jsdelivr.net/gh/${GITHUB_USER}/${GITHUB_REPO}@main/games2.json`,
-    `https://cdn.jsdelivr.net/gh/${GITHUB_USER}/${GITHUB_REPO}@latest/games2.json`,
+    `https://cdn.statically.io/gh/${GITHUB_USER}/${GITHUB_REPO}@main/games2.json`,
+    `https://cdn.statically.io/gh/${GITHUB_USER}/${GITHUB_REPO}@latest/games2.json`,
     `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/games2.json`
   ];
   let lastErr='';
